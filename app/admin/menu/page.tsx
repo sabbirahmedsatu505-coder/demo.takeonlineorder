@@ -1,319 +1,356 @@
 'use client';
 
-import { useState, useRef, useMemo } from 'react';
-import Link from 'next/link';
-import { useCart } from '@/lib/cart-context';
+import { useEffect, useState } from 'react';
+import { supabase } from '@/lib/supabase';
+import RequireAuth from '@/lib/require-auth';
+import AdminNav from '../admin-nav';
 
-type Choice = { id: string; name: string; price_delta: number };
-type OptionGroup = { id: string; name: string; required: boolean; max_selections: number; option_choices: Choice[] };
+type Category = { id: string; name: string; subtitle: string | null; sort_order: number };
 type MenuItem = {
   id: string; category_id: string; name: string; description: string | null;
-  base_price: number; image_url: string | null; is_available: boolean;
-  option_groups: OptionGroup[];
+  base_price: number; is_available: boolean; image_url: string | null;
 };
-type Category = { id: string; name: string; subtitle: string | null; sort_order: number };
 
-export default function MenuClient({ categories, items }: { categories: Category[]; items: MenuItem[] }) {
-  const { lines, addLine, removeLine, updateQuantity, subtotal, itemCount } = useCart();
-  const [activeItem, setActiveItem] = useState<MenuItem | null>(null);
-  const [cartOpen, setCartOpen] = useState(false);
-  const [activeCat, setActiveCat] = useState<string>(categories[0]?.id || '');
-  const [search, setSearch] = useState('');
+export default function AdminMenuPage() {
+  return (
+    <RequireAuth>
+      <AdminNav />
+      <MenuManager />
+    </RequireAuth>
+  );
+}
 
-  const itemsByCategory = useMemo(() => {
-    const map: Record<string, MenuItem[]> = {};
-    for (const item of items) {
-      (map[item.category_id] ||= []).push(item);
+function MenuManager() {
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [items, setItems] = useState<MenuItem[]>([]);
+  const [activeCat, setActiveCat] = useState<string>('');
+
+  const [newCatName, setNewCatName] = useState('');
+  const [newCatSubtitle, setNewCatSubtitle] = useState('');
+  const [addingCategory, setAddingCategory] = useState(false);
+
+  const [form, setForm] = useState({ name: '', description: '', base_price: '' });
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState('');
+
+  const [editingItem, setEditingItem] = useState<MenuItem | null>(null);
+
+  async function loadAll() {
+    const { data: cats } = await supabase.from('categories').select('*').order('sort_order');
+    const { data: menuItems } = await supabase.from('menu_items')
+      .select('id, category_id, name, description, base_price, is_available, image_url')
+      .order('sort_order');
+    setCategories(cats || []);
+    setItems(menuItems || []);
+    if (!activeCat && cats && cats.length > 0) setActiveCat(cats[0].id);
+  }
+
+  useEffect(() => { loadAll(); }, []);
+
+  async function addCategory(e: React.FormEvent) {
+    e.preventDefault();
+    if (!newCatName) return;
+    const { data } = await supabase
+      .from('categories')
+      .insert({ name: newCatName, subtitle: newCatSubtitle || null, sort_order: categories.length })
+      .select()
+      .single();
+    setNewCatName('');
+    setNewCatSubtitle('');
+    setAddingCategory(false);
+    await loadAll();
+    if (data) setActiveCat(data.id);
+  }
+
+  async function deleteCategory(id: string) {
+    if (!confirm('Delete this category and all its items?')) return;
+    await supabase.from('categories').delete().eq('id', id);
+    if (activeCat === id) setActiveCat('');
+    loadAll();
+  }
+
+  function handlePhotoSelect(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setPhotoFile(file);
+    setPhotoPreview(URL.createObjectURL(file));
+  }
+
+  async function uploadPhotoIfAny(): Promise<string | null> {
+    if (!photoFile) return null;
+    const fileExt = photoFile.name.split('.').pop();
+    const fileName = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${fileExt}`;
+    const { error: uploadError } = await supabase.storage
+      .from('menu-images')
+      .upload(fileName, photoFile, { cacheControl: '3600', upsert: false });
+    if (uploadError) throw new Error(uploadError.message);
+    const { data } = supabase.storage.from('menu-images').getPublicUrl(fileName);
+    return data.publicUrl;
+  }
+
+  async function addItem(e: React.FormEvent) {
+    e.preventDefault();
+    setError('');
+    if (!activeCat || !form.name || !form.base_price) return;
+
+    setUploading(true);
+    try {
+      const imageUrl = await uploadPhotoIfAny();
+      await supabase.from('menu_items').insert({
+        category_id: activeCat,
+        name: form.name,
+        description: form.description,
+        base_price: parseFloat(form.base_price),
+        is_available: true,
+        image_url: imageUrl,
+        sort_order: items.filter(i => i.category_id === activeCat).length,
+      });
+      setForm({ name: '', description: '', base_price: '' });
+      setPhotoFile(null);
+      setPhotoPreview(null);
+      loadAll();
+    } catch (err: any) {
+      setError(`Photo upload failed: ${err.message}. Item was not saved.`);
+    } finally {
+      setUploading(false);
     }
-    return map;
-  }, [items]);
+  }
+
+  async function saveEdit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!editingItem) return;
+    setUploading(true);
+    setError('');
+    try {
+      const newImageUrl = await uploadPhotoIfAny();
+      await supabase.from('menu_items').update({
+        name: editingItem.name,
+        description: editingItem.description,
+        base_price: editingItem.base_price,
+        ...(newImageUrl ? { image_url: newImageUrl } : {}),
+      }).eq('id', editingItem.id);
+      setEditingItem(null);
+      setPhotoFile(null);
+      setPhotoPreview(null);
+      loadAll();
+    } catch (err: any) {
+      setError(`Photo upload failed: ${err.message}. Other changes were not saved either — try again.`);
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  async function toggleAvailable(item: MenuItem) {
+    await supabase.from('menu_items').update({ is_available: !item.is_available }).eq('id', item.id);
+    loadAll();
+  }
+
+  async function deleteItem(id: string) {
+    if (!confirm('Delete this item?')) return;
+    await supabase.from('menu_items').delete().eq('id', id);
+    loadAll();
+  }
 
   const currentCategory = categories.find(c => c.id === activeCat);
-  const currentItems = (itemsByCategory[activeCat] || []).filter(i =>
-    !search || i.name.toLowerCase().includes(search.toLowerCase())
-  );
+  const currentItems = items.filter(i => i.category_id === activeCat);
 
   return (
-    <div>
-      {/* TOP BAR */}
-      <header className="sticky top-0 z-40 bg-white border-b">
-        <div className="max-w-6xl mx-auto flex items-center justify-between px-4 py-3">
-          <Link href="/" className="text-xl font-bold text-brand">Your Restaurant</Link>
-          <button
-            onClick={() => setCartOpen(true)}
-            className="relative bg-brand text-white px-4 py-2 rounded-full text-sm font-semibold hover:bg-brand-dark transition"
-          >
-            Cart {itemCount > 0 && `(${itemCount})`}
-          </button>
-        </div>
-      </header>
-
-      <div className="max-w-6xl mx-auto px-4 py-6 flex gap-8">
-        {/* LEFT SIDEBAR — category list */}
-        <aside className="w-56 shrink-0 hidden sm:block">
-          <div className="relative mb-4">
-            <input
-              placeholder="Search menu"
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              className="w-full border rounded-lg pl-3 pr-3 py-2 text-sm"
-            />
-          </div>
-          <nav className="space-y-1">
-            {categories.map(cat => (
+    <main className="max-w-5xl mx-auto px-4 py-8 flex gap-8">
+      {/* SIDEBAR — categories, same layout as customer menu */}
+      <aside className="w-56 shrink-0">
+        <h1 className="text-lg font-bold mb-4">Menu Manager</h1>
+        <nav className="space-y-1 mb-4">
+          {categories.map(cat => (
+            <div key={cat.id} className="group flex items-center">
               <button
-                key={cat.id}
                 onClick={() => setActiveCat(cat.id)}
-                className={`w-full text-left px-3 py-2 rounded-lg text-sm transition ${
+                className={`flex-1 text-left px-3 py-2 rounded-lg text-sm transition ${
                   activeCat === cat.id ? 'bg-black text-white font-semibold' : 'text-gray-700 hover:bg-gray-100'
                 }`}
               >
                 {cat.name}
               </button>
-            ))}
-          </nav>
-        </aside>
-
-        {/* MOBILE CATEGORY SELECT */}
-        <div className="sm:hidden mb-4 w-full">
-          <select
-            value={activeCat}
-            onChange={e => setActiveCat(e.target.value)}
-            className="w-full border rounded-lg px-3 py-2 text-sm"
-          >
-            {categories.map(cat => <option key={cat.id} value={cat.id}>{cat.name}</option>)}
-          </select>
-        </div>
-
-        {/* MAIN CONTENT */}
-        <main className="flex-1 min-w-0">
-          {currentCategory && (
-            <div className="mb-6">
-              <h1 className="text-2xl font-bold">{currentCategory.name}</h1>
-              {currentCategory.subtitle && (
-                <p className="text-gray-500 text-sm mt-1 italic">"{currentCategory.subtitle}"</p>
-              )}
-            </div>
-          )}
-
-          <div className="grid sm:grid-cols-2 gap-5">
-            {currentItems.map(item => (
               <button
-                key={item.id}
-                onClick={() => setActiveItem(item)}
-                className="text-left border-b pb-5 flex gap-4 hover:opacity-80 transition"
+                onClick={() => deleteCategory(cat.id)}
+                className="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-red-500 text-xs px-1"
+                title="Delete category"
               >
-                <div className="flex-1 min-w-0">
-                  <p className="font-semibold">{item.name}</p>
-                  <p className="text-sm font-semibold text-gray-800 mt-0.5">
-                    ${item.base_price.toFixed(2)}
-                  </p>
-                  {item.description && (
-                    <p className="text-sm text-gray-500 mt-1">{item.description}</p>
-                  )}
-                </div>
-                {item.image_url && (
-                  <div className="relative w-28 h-28 shrink-0">
-                    <div
-                      className="w-full h-full rounded-lg bg-cover bg-center"
-                      style={{ backgroundImage: `url('${item.image_url}')` }}
-                    />
-                    <div className="absolute bottom-1 right-1 w-7 h-7 bg-white rounded-full shadow flex items-center justify-center text-lg leading-none">
-                      +
-                    </div>
-                  </div>
-                )}
+                ✕
               </button>
-            ))}
-            {currentItems.length === 0 && (
-              <p className="text-gray-400 text-sm col-span-2">No items in this category yet.</p>
-            )}
-          </div>
-        </main>
-      </div>
-
-      {activeItem && (
-        <ItemModal item={activeItem} onClose={() => setActiveItem(null)} onAdd={addLine} />
-      )}
-
-      {cartOpen && (
-        <CartDrawer
-          lines={lines}
-          subtotal={subtotal}
-          onClose={() => setCartOpen(false)}
-          onRemove={removeLine}
-          onUpdateQty={updateQuantity}
-        />
-      )}
-    </div>
-  );
-}
-
-// ============ ITEM CUSTOMIZATION MODAL ============
-function ItemModal({
-  item, onClose, onAdd,
-}: {
-  item: MenuItem;
-  onClose: () => void;
-  onAdd: (line: any) => void;
-}) {
-  const [selections, setSelections] = useState<Record<string, Choice[]>>({});
-  const [quantity, setQuantity] = useState(1);
-
-  function toggleChoice(group: OptionGroup, choice: Choice) {
-    setSelections(prev => {
-      const current = prev[group.id] || [];
-      const exists = current.find(c => c.id === choice.id);
-      let next: Choice[];
-      if (group.max_selections === 1) {
-        next = exists ? [] : [choice];
-      } else {
-        next = exists ? current.filter(c => c.id !== choice.id) : [...current, choice];
-        if (next.length > group.max_selections) return prev;
-      }
-      return { ...prev, [group.id]: next };
-    });
-  }
-
-  const optionsTotal = Object.values(selections).flat().reduce((s, c) => s + c.price_delta, 0);
-  const unitPrice = item.base_price + optionsTotal;
-  const canAdd = item.option_groups
-    .filter(g => g.required)
-    .every(g => (selections[g.id] || []).length > 0);
-
-  function handleAdd() {
-    const flatOptions = item.option_groups.flatMap(g =>
-      (selections[g.id] || []).map(c => ({ group: g.name, choice: c.name, price_delta: c.price_delta }))
-    );
-    onAdd({
-      menuItemId: item.id,
-      name: item.name,
-      basePrice: item.base_price,
-      quantity,
-      options: flatOptions,
-    });
-    onClose();
-  }
-
-  return (
-    <div className="fixed inset-0 z-50 bg-black/50 flex items-end sm:items-center justify-center">
-      <div className="bg-white rounded-t-2xl sm:rounded-2xl w-full sm:max-w-lg max-h-[85vh] overflow-y-auto">
-        {item.image_url && (
-          <div className="h-40 bg-cover bg-center rounded-t-2xl" style={{ backgroundImage: `url('${item.image_url}')` }} />
-        )}
-        <div className="p-5">
-          <div className="flex justify-between items-start mb-2">
-            <h3 className="text-xl font-bold">{item.name}</h3>
-            <button onClick={onClose} className="text-gray-400 text-2xl leading-none">&times;</button>
-          </div>
-          {item.description && <p className="text-gray-600 text-sm mb-4">{item.description}</p>}
-
-          {item.option_groups.map(group => (
-            <div key={group.id} className="mb-5">
-              <p className="font-semibold mb-2">
-                {group.name} {group.required && <span className="text-brand text-xs">(required)</span>}
-              </p>
-              <div className="space-y-2">
-                {group.option_choices.map(choice => {
-                  const selected = !!(selections[group.id] || []).find(c => c.id === choice.id);
-                  return (
-                    <button
-                      key={choice.id}
-                      onClick={() => toggleChoice(group, choice)}
-                      className={`w-full flex justify-between items-center border rounded-lg px-3 py-2 text-sm transition ${
-                        selected ? 'border-brand bg-brand/5' : 'border-gray-200'
-                      }`}
-                    >
-                      <span>{choice.name}</span>
-                      {choice.price_delta > 0 && <span>+${choice.price_delta.toFixed(2)}</span>}
-                    </button>
-                  );
-                })}
-              </div>
             </div>
           ))}
+        </nav>
 
-          <div className="flex items-center justify-between mt-6">
-            <div className="flex items-center gap-3 border rounded-full px-3 py-1">
-              <button onClick={() => setQuantity(q => Math.max(1, q - 1))}>−</button>
-              <span>{quantity}</span>
-              <button onClick={() => setQuantity(q => q + 1)}>+</button>
+        {!addingCategory ? (
+          <button
+            onClick={() => setAddingCategory(true)}
+            className="text-sm text-brand font-semibold"
+          >
+            + Add category
+          </button>
+        ) : (
+          <form onSubmit={addCategory} className="space-y-2 border rounded-lg p-3">
+            <input
+              placeholder="Category name" value={newCatName}
+              onChange={e => setNewCatName(e.target.value)}
+              className="w-full border rounded-lg px-2 py-1.5 text-sm"
+              autoFocus
+            />
+            <input
+              placeholder="Subtitle (optional)" value={newCatSubtitle}
+              onChange={e => setNewCatSubtitle(e.target.value)}
+              className="w-full border rounded-lg px-2 py-1.5 text-sm"
+            />
+            <div className="flex gap-2">
+              <button className="bg-gray-800 text-white px-3 py-1.5 rounded-lg text-xs font-semibold">
+                Save
+              </button>
+              <button type="button" onClick={() => setAddingCategory(false)} className="text-xs text-gray-400">
+                Cancel
+              </button>
             </div>
-            <button
-              onClick={handleAdd}
-              disabled={!canAdd}
-              className="bg-brand text-white px-6 py-2.5 rounded-full font-semibold disabled:opacity-40"
-            >
-              Add to Cart · ${(unitPrice * quantity).toFixed(2)}
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
+          </form>
+        )}
+      </aside>
 
-// ============ CART DRAWER ============
-function CartDrawer({
-  lines, subtotal, onClose, onRemove, onUpdateQty,
-}: {
-  lines: any[]; subtotal: number; onClose: () => void;
-  onRemove: (id: string) => void; onUpdateQty: (id: string, q: number) => void;
-}) {
-  return (
-    <div className="fixed inset-0 z-50 bg-black/50 flex justify-end">
-      <div className="bg-white w-full sm:max-w-md h-full overflow-y-auto flex flex-col">
-        <div className="p-5 border-b flex justify-between items-center">
-          <h3 className="text-xl font-bold">Your Cart</h3>
-          <button onClick={onClose} className="text-gray-400 text-2xl leading-none">&times;</button>
-        </div>
+      {/* MAIN — items in the selected category */}
+      <div className="flex-1 min-w-0">
+        {!currentCategory ? (
+          <p className="text-gray-400 text-sm">Add a category to get started.</p>
+        ) : (
+          <>
+            <h2 className="text-2xl font-bold">{currentCategory.name}</h2>
+            {currentCategory.subtitle && (
+              <p className="text-gray-500 text-sm italic mt-1 mb-4">"{currentCategory.subtitle}"</p>
+            )}
 
-        <div className="flex-1 p-5 space-y-4">
-          {lines.length === 0 && <p className="text-gray-500 text-sm">Your cart is empty.</p>}
-          {lines.map(line => {
-            const optTotal = line.options.reduce((s: number, o: any) => s + o.price_delta, 0);
-            const lineTotal = (line.basePrice + optTotal) * line.quantity;
-            return (
-              <div key={line.lineId} className="border-b pb-3">
-                <div className="flex justify-between">
-                  <p className="font-semibold text-sm">{line.name}</p>
-                  <p className="font-semibold text-sm">${lineTotal.toFixed(2)}</p>
-                </div>
-                {line.options.length > 0 && (
-                  <p className="text-xs text-gray-500 mt-1">
-                    {line.options.map((o: any) => o.choice).join(', ')}
-                  </p>
+            {/* ADD ITEM FORM — scoped to this category */}
+            <form onSubmit={addItem} className="border rounded-xl p-4 space-y-3 my-4">
+              <h3 className="font-semibold text-sm">Add item to "{currentCategory.name}"</h3>
+              <input
+                placeholder="Item name" value={form.name}
+                onChange={e => setForm({ ...form, name: e.target.value })}
+                className="w-full border rounded-lg px-3 py-2 text-sm"
+              />
+              <textarea
+                placeholder="Description" value={form.description}
+                onChange={e => setForm({ ...form, description: e.target.value })}
+                className="w-full border rounded-lg px-3 py-2 text-sm" rows={2}
+              />
+              <input
+                placeholder="Price (e.g. 11.45)" value={form.base_price}
+                onChange={e => setForm({ ...form, base_price: e.target.value })}
+                className="w-full border rounded-lg px-3 py-2 text-sm"
+              />
+              <div>
+                <label className="block text-sm font-medium mb-1">Photo (optional)</label>
+                <input type="file" accept="image/*" onChange={handlePhotoSelect} className="w-full text-sm" />
+                {photoPreview && (
+                  <div
+                    className="mt-2 w-20 h-20 rounded-lg bg-cover bg-center border"
+                    style={{ backgroundImage: `url('${photoPreview}')` }}
+                  />
                 )}
-                <div className="flex justify-between items-center mt-2">
-                  <div className="flex items-center gap-2 border rounded-full px-2 py-0.5 text-sm">
-                    <button onClick={() => onUpdateQty(line.lineId, line.quantity - 1)}>−</button>
-                    <span>{line.quantity}</span>
-                    <button onClick={() => onUpdateQty(line.lineId, line.quantity + 1)}>+</button>
-                  </div>
-                  <button onClick={() => onRemove(line.lineId)} className="text-xs text-gray-400 underline">
-                    Remove
-                  </button>
-                </div>
               </div>
-            );
-          })}
-        </div>
+              {error && <p className="text-red-600 text-sm">{error}</p>}
+              <button
+                disabled={uploading}
+                className="bg-brand text-white px-5 py-2 rounded-full text-sm font-semibold disabled:opacity-50"
+              >
+                {uploading ? 'Saving…' : 'Add Item'}
+              </button>
+            </form>
 
-        {lines.length > 0 && (
-          <div className="p-5 border-t">
-            <div className="flex justify-between font-bold mb-4">
-              <span>Subtotal</span>
-              <span>${subtotal.toFixed(2)}</span>
+            {/* ITEM LIST — matches customer-facing card style */}
+            <div className="grid sm:grid-cols-2 gap-5 mt-6">
+              {currentItems.map(item => (
+                <div key={item.id} className="border-b pb-5 flex gap-4">
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold">{item.name}</p>
+                    <p className="text-sm font-semibold text-gray-800 mt-0.5">${item.base_price.toFixed(2)}</p>
+                    {item.description && <p className="text-sm text-gray-500 mt-1">{item.description}</p>}
+                    <div className="flex items-center gap-3 mt-2">
+                      <button
+                        onClick={() => toggleAvailable(item)}
+                        className={`text-xs px-3 py-1 rounded-full font-semibold ${
+                          item.is_available ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600'
+                        }`}
+                      >
+                        {item.is_available ? 'Available' : 'Sold Out'}
+                      </button>
+                      <button
+                        onClick={() => { setEditingItem(item); setPhotoPreview(null); setPhotoFile(null); }}
+                        className="text-xs text-gray-500 underline"
+                      >
+                        Edit
+                      </button>
+                      <button onClick={() => deleteItem(item.id)} className="text-xs text-gray-400 underline">
+                        Delete
+                      </button>
+                    </div>
+                  </div>
+                  {item.image_url && (
+                    <div
+                      className="w-28 h-28 rounded-lg bg-cover bg-center shrink-0"
+                      style={{ backgroundImage: `url('${item.image_url}')` }}
+                    />
+                  )}
+                </div>
+              ))}
+              {currentItems.length === 0 && (
+                <p className="text-gray-400 text-sm col-span-2">No items yet — add one above.</p>
+              )}
             </div>
-            <Link
-              href="/checkout"
-              className="block text-center bg-brand text-white py-3 rounded-full font-semibold hover:bg-brand-dark transition"
-            >
-              Checkout
-            </Link>
-          </div>
+          </>
         )}
       </div>
-    </div>
+
+      {/* EDIT ITEM MODAL */}
+      {editingItem && (
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center px-4">
+          <form onSubmit={saveEdit} className="bg-white rounded-2xl p-5 w-full max-w-md space-y-3">
+            <div className="flex justify-between items-center">
+              <h3 className="font-bold text-lg">Edit item</h3>
+              <button type="button" onClick={() => setEditingItem(null)} className="text-gray-400 text-2xl leading-none">&times;</button>
+            </div>
+            <input
+              value={editingItem.name}
+              onChange={e => setEditingItem({ ...editingItem, name: e.target.value })}
+              className="w-full border rounded-lg px-3 py-2 text-sm"
+            />
+            <textarea
+              value={editingItem.description || ''}
+              onChange={e => setEditingItem({ ...editingItem, description: e.target.value })}
+              className="w-full border rounded-lg px-3 py-2 text-sm" rows={2}
+            />
+            <input
+              type="number" step="0.01"
+              value={editingItem.base_price}
+              onChange={e => setEditingItem({ ...editingItem, base_price: parseFloat(e.target.value) })}
+              className="w-full border rounded-lg px-3 py-2 text-sm"
+            />
+            <div>
+              <label className="block text-sm font-medium mb-1">Replace photo (optional)</label>
+              <input type="file" accept="image/*" onChange={handlePhotoSelect} className="w-full text-sm" />
+              {photoPreview && (
+                <div
+                  className="mt-2 w-20 h-20 rounded-lg bg-cover bg-center border"
+                  style={{ backgroundImage: `url('${photoPreview}')` }}
+                />
+              )}
+            </div>
+            {error && <p className="text-red-600 text-sm">{error}</p>}
+            <button
+              disabled={uploading}
+              className="bg-brand text-white px-5 py-2 rounded-full text-sm font-semibold disabled:opacity-50"
+            >
+              {uploading ? 'Saving…' : 'Save Changes'}
+            </button>
+          </form>
+        </div>
+      )}
+    </main>
   );
 }
