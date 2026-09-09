@@ -6,7 +6,7 @@ export const revalidate = 60;
 async function getMenuData() {
   const { data: categories } = await supabase
     .from('categories')
-    .select('id, name, sort_order')
+    .select('id, name, subtitle, sort_order')
     .order('sort_order');
 
   const { data: items } = await supabase
