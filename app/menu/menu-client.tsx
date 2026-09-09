@@ -11,13 +11,14 @@ type MenuItem = {
   base_price: number; image_url: string | null; is_available: boolean;
   option_groups: OptionGroup[];
 };
-type Category = { id: string; name: string; sort_order: number };
+type Category = { id: string; name: string; subtitle: string | null; sort_order: number };
 
 export default function MenuClient({ categories, items }: { categories: Category[]; items: MenuItem[] }) {
   const { lines, addLine, removeLine, updateQuantity, subtotal, itemCount } = useCart();
   const [activeItem, setActiveItem] = useState<MenuItem | null>(null);
   const [cartOpen, setCartOpen] = useState(false);
-  const sectionRefs = useRef<Record<string, HTMLElement | null>>({});
+  const [activeCat, setActiveCat] = useState<string>(categories[0]?.id || '');
+  const [search, setSearch] = useState('');
 
   const itemsByCategory = useMemo(() => {
     const map: Record<string, MenuItem[]> = {};
@@ -27,9 +28,10 @@ export default function MenuClient({ categories, items }: { categories: Category
     return map;
   }, [items]);
 
-  function scrollToCategory(catId: string) {
-    sectionRefs.current[catId]?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  }
+  const currentCategory = categories.find(c => c.id === activeCat);
+  const currentItems = (itemsByCategory[activeCat] || []).filter(i =>
+    !search || i.name.toLowerCase().includes(search.toLowerCase())
+  );
 
   return (
     <div>
@@ -44,57 +46,91 @@ export default function MenuClient({ categories, items }: { categories: Category
             Cart {itemCount > 0 && `(${itemCount})`}
           </button>
         </div>
-        {/* CATEGORY NAV */}
-        <nav className="max-w-6xl mx-auto px-4 pb-3 flex gap-4 overflow-x-auto text-sm font-medium">
-          {categories.map(cat => (
-            <button
-              key={cat.id}
-              onClick={() => scrollToCategory(cat.id)}
-              className="whitespace-nowrap px-3 py-1.5 rounded-full border hover:bg-gray-100 transition"
-            >
-              {cat.name}
-            </button>
-          ))}
-        </nav>
       </header>
 
-      {/* MENU SECTIONS */}
-      <main className="max-w-6xl mx-auto px-4 py-8">
-        {categories.map(cat => (
-          <section
-            key={cat.id}
-            ref={el => { sectionRefs.current[cat.id] = el; }}
-            className="mb-12 scroll-mt-32"
+      <div className="max-w-6xl mx-auto px-4 py-6 flex gap-8">
+        {/* LEFT SIDEBAR — category list */}
+        <aside className="w-56 shrink-0 hidden sm:block">
+          <div className="relative mb-4">
+            <input
+              placeholder="Search menu"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              className="w-full border rounded-lg pl-3 pr-3 py-2 text-sm"
+            />
+          </div>
+          <nav className="space-y-1">
+            {categories.map(cat => (
+              <button
+                key={cat.id}
+                onClick={() => setActiveCat(cat.id)}
+                className={`w-full text-left px-3 py-2 rounded-lg text-sm transition ${
+                  activeCat === cat.id ? 'bg-black text-white font-semibold' : 'text-gray-700 hover:bg-gray-100'
+                }`}
+              >
+                {cat.name}
+              </button>
+            ))}
+          </nav>
+        </aside>
+
+        {/* MOBILE CATEGORY SELECT */}
+        <div className="sm:hidden mb-4 w-full">
+          <select
+            value={activeCat}
+            onChange={e => setActiveCat(e.target.value)}
+            className="w-full border rounded-lg px-3 py-2 text-sm"
           >
-            <h2 className="text-2xl font-bold mb-4">{cat.name}</h2>
-            <div className="grid sm:grid-cols-2 gap-4">
-              {(itemsByCategory[cat.id] || []).map(item => (
-                <button
-                  key={item.id}
-                  onClick={() => setActiveItem(item)}
-                  className="text-left border rounded-xl p-4 hover:shadow-md transition flex justify-between gap-4"
-                >
-                  <div>
-                    <p className="font-semibold">{item.name}</p>
-                    {item.description && (
-                      <p className="text-sm text-gray-600 mt-1">{item.description}</p>
-                    )}
-                    <p className="text-brand font-bold mt-2">
-                      ${item.base_price.toFixed(2)}{item.option_groups.length > 0 && '+'}
-                    </p>
-                  </div>
-                  {item.image_url && (
+            {categories.map(cat => <option key={cat.id} value={cat.id}>{cat.name}</option>)}
+          </select>
+        </div>
+
+        {/* MAIN CONTENT */}
+        <main className="flex-1 min-w-0">
+          {currentCategory && (
+            <div className="mb-6">
+              <h1 className="text-2xl font-bold">{currentCategory.name}</h1>
+              {currentCategory.subtitle && (
+                <p className="text-gray-500 text-sm mt-1 italic">"{currentCategory.subtitle}"</p>
+              )}
+            </div>
+          )}
+
+          <div className="grid sm:grid-cols-2 gap-5">
+            {currentItems.map(item => (
+              <button
+                key={item.id}
+                onClick={() => setActiveItem(item)}
+                className="text-left border-b pb-5 flex gap-4 hover:opacity-80 transition"
+              >
+                <div className="flex-1 min-w-0">
+                  <p className="font-semibold">{item.name}</p>
+                  <p className="text-sm font-semibold text-gray-800 mt-0.5">
+                    ${item.base_price.toFixed(2)}
+                  </p>
+                  {item.description && (
+                    <p className="text-sm text-gray-500 mt-1">{item.description}</p>
+                  )}
+                </div>
+                {item.image_url && (
+                  <div className="relative w-28 h-28 shrink-0">
                     <div
-                      className="w-20 h-20 rounded-lg bg-cover bg-center shrink-0"
+                      className="w-full h-full rounded-lg bg-cover bg-center"
                       style={{ backgroundImage: `url('${item.image_url}')` }}
                     />
-                  )}
-                </button>
-              ))}
-            </div>
-          </section>
-        ))}
-      </main>
+                    <div className="absolute bottom-1 right-1 w-7 h-7 bg-white rounded-full shadow flex items-center justify-center text-lg leading-none">
+                      +
+                    </div>
+                  </div>
+                )}
+              </button>
+            ))}
+            {currentItems.length === 0 && (
+              <p className="text-gray-400 text-sm col-span-2">No items in this category yet.</p>
+            )}
+          </div>
+        </main>
+      </div>
 
       {activeItem && (
         <ItemModal item={activeItem} onClose={() => setActiveItem(null)} onAdd={addLine} />
@@ -133,7 +169,7 @@ function ItemModal({
         next = exists ? [] : [choice];
       } else {
         next = exists ? current.filter(c => c.id !== choice.id) : [...current, choice];
-        if (next.length > group.max_selections) return prev; // enforce cap
+        if (next.length > group.max_selections) return prev;
       }
       return { ...prev, [group.id]: next };
     });
@@ -162,6 +198,9 @@ function ItemModal({
   return (
     <div className="fixed inset-0 z-50 bg-black/50 flex items-end sm:items-center justify-center">
       <div className="bg-white rounded-t-2xl sm:rounded-2xl w-full sm:max-w-lg max-h-[85vh] overflow-y-auto">
+        {item.image_url && (
+          <div className="h-40 bg-cover bg-center rounded-t-2xl" style={{ backgroundImage: `url('${item.image_url}')` }} />
+        )}
         <div className="p-5">
           <div className="flex justify-between items-start mb-2">
             <h3 className="text-xl font-bold">{item.name}</h3>
