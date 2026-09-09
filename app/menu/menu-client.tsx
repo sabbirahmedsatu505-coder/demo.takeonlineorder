@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useMemo } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { useCart } from '@/lib/cart-context';
 
@@ -18,7 +18,11 @@ export default function MenuClient({ categories, items }: { categories: Category
   const [activeItem, setActiveItem] = useState<MenuItem | null>(null);
   const [cartOpen, setCartOpen] = useState(false);
   const [activeCat, setActiveCat] = useState<string>(categories[0]?.id || '');
-  const [search, setSearch] = useState('');
+
+  const sectionRefs = useRef<Record<string, HTMLElement | null>>({});
+  const tabRefs = useRef<Record<string, HTMLButtonElement | null>>({});
+  const tabBarRef = useRef<HTMLDivElement | null>(null);
+  const isClickScrolling = useRef(false);
 
   const itemsByCategory = useMemo(() => {
     const map: Record<string, MenuItem[]> = {};
@@ -28,17 +32,42 @@ export default function MenuClient({ categories, items }: { categories: Category
     return map;
   }, [items]);
 
-  const currentCategory = categories.find(c => c.id === activeCat);
-  const currentItems = (itemsByCategory[activeCat] || []).filter(i =>
-    !search || i.name.toLowerCase().includes(search.toLowerCase())
-  );
+  // Scroll-spy: highlight the tab for whichever section is currently in view
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      entries => {
+        if (isClickScrolling.current) return;
+        const visible = entries.filter(e => e.isIntersecting);
+        if (visible.length > 0) {
+          const topMost = visible.sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top)[0];
+          const catId = topMost.target.getAttribute('data-cat-id');
+          if (catId) setActiveCat(catId);
+        }
+      },
+      { rootMargin: '-140px 0px -60% 0px', threshold: 0 }
+    );
+    Object.values(sectionRefs.current).forEach(el => el && observer.observe(el));
+    return () => observer.disconnect();
+  }, [categories, items]);
+
+  // Keep the active tab scrolled into view within the horizontal tab bar
+  useEffect(() => {
+    tabRefs.current[activeCat]?.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+  }, [activeCat]);
+
+  function goToCategory(catId: string) {
+    isClickScrolling.current = true;
+    setActiveCat(catId);
+    sectionRefs.current[catId]?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    setTimeout(() => { isClickScrolling.current = false; }, 700);
+  }
 
   return (
     <div>
       {/* TOP BAR */}
       <header className="sticky top-0 z-40 bg-white border-b">
         <div className="max-w-6xl mx-auto flex items-center justify-between px-4 py-3">
-          <Link href="/" className="text-xl font-bold text-brand">Your Restaurant</Link>
+          <Link href="/" className="text-lg font-bold text-brand">Your Restaurant</Link>
           <button
             onClick={() => setCartOpen(true)}
             className="relative bg-brand text-white px-4 py-2 rounded-full text-sm font-semibold hover:bg-brand-dark transition"
@@ -46,91 +75,89 @@ export default function MenuClient({ categories, items }: { categories: Category
             Cart {itemCount > 0 && `(${itemCount})`}
           </button>
         </div>
+
+        {/* HORIZONTAL SCROLLABLE CATEGORY TABS */}
+        <div
+          ref={tabBarRef}
+          className="flex gap-2 overflow-x-auto px-4 pb-3 scrollbar-hide"
+          style={{ scrollbarWidth: 'none' }}
+        >
+          {categories.map(cat => (
+            <button
+              key={cat.id}
+              ref={el => { tabRefs.current[cat.id] = el; }}
+              onClick={() => goToCategory(cat.id)}
+              className={`whitespace-nowrap px-4 py-2 rounded-full text-sm font-semibold border transition shrink-0 ${
+                activeCat === cat.id ? 'bg-black text-white border-black' : 'border-gray-300 text-gray-700'
+              }`}
+            >
+              {cat.name}
+            </button>
+          ))}
+        </div>
       </header>
 
-      <div className="max-w-6xl mx-auto px-4 py-6 flex gap-8">
-        {/* LEFT SIDEBAR — category list */}
-        <aside className="w-56 shrink-0 hidden sm:block">
-          <div className="relative mb-4">
-            <input
-              placeholder="Search menu"
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              className="w-full border rounded-lg pl-3 pr-3 py-2 text-sm"
-            />
-          </div>
-          <nav className="space-y-1">
-            {categories.map(cat => (
-              <button
-                key={cat.id}
-                onClick={() => setActiveCat(cat.id)}
-                className={`w-full text-left px-3 py-2 rounded-lg text-sm transition ${
-                  activeCat === cat.id ? 'bg-black text-white font-semibold' : 'text-gray-700 hover:bg-gray-100'
-                }`}
-              >
-                {cat.name}
-              </button>
-            ))}
-          </nav>
-        </aside>
-
-        {/* MOBILE CATEGORY SELECT */}
-        <div className="sm:hidden mb-4 w-full">
-          <select
-            value={activeCat}
-            onChange={e => setActiveCat(e.target.value)}
-            className="w-full border rounded-lg px-3 py-2 text-sm"
+      {/* ALL CATEGORIES AS STACKED SCROLLABLE SECTIONS */}
+      <main className="max-w-3xl mx-auto px-4 py-6 pb-24">
+        {categories.map(cat => (
+          <section
+            key={cat.id}
+            data-cat-id={cat.id}
+            ref={el => { sectionRefs.current[cat.id] = el; }}
+            className="mb-10 scroll-mt-32"
           >
-            {categories.map(cat => <option key={cat.id} value={cat.id}>{cat.name}</option>)}
-          </select>
-        </div>
-
-        {/* MAIN CONTENT */}
-        <main className="flex-1 min-w-0">
-          {currentCategory && (
-            <div className="mb-6">
-              <h1 className="text-2xl font-bold">{currentCategory.name}</h1>
-              {currentCategory.subtitle && (
-                <p className="text-gray-500 text-sm mt-1 italic">"{currentCategory.subtitle}"</p>
+            <h2 className="text-2xl font-bold">{cat.name}</h2>
+            {cat.subtitle && (
+              <p className="text-gray-500 text-sm italic mt-1 mb-4">"{cat.subtitle}"</p>
+            )}
+            <div className="divide-y">
+              {(itemsByCategory[cat.id] || []).map(item => (
+                <button
+                  key={item.id}
+                  onClick={() => setActiveItem(item)}
+                  className="w-full text-left py-4 flex gap-4 hover:opacity-80 transition"
+                >
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold">{item.name}</p>
+                    <p className="text-sm font-semibold text-gray-800 mt-0.5">
+                      ${item.base_price.toFixed(2)}{item.option_groups.length > 0 && '+'}
+                    </p>
+                    {item.description && (
+                      <p className="text-sm text-gray-500 mt-1">{item.description}</p>
+                    )}
+                  </div>
+                  {item.image_url && (
+                    <div className="relative w-24 h-24 shrink-0">
+                      <div
+                        className="w-full h-full rounded-lg bg-cover bg-center"
+                        style={{ backgroundImage: `url('${item.image_url}')` }}
+                      />
+                      <div className="absolute bottom-1 right-1 w-7 h-7 bg-white rounded-full shadow flex items-center justify-center text-lg leading-none">
+                        +
+                      </div>
+                    </div>
+                  )}
+                </button>
+              ))}
+              {(itemsByCategory[cat.id] || []).length === 0 && (
+                <p className="text-gray-400 text-sm py-4">No items in this category yet.</p>
               )}
             </div>
-          )}
+          </section>
+        ))}
+      </main>
 
-          <div className="grid sm:grid-cols-2 gap-5">
-            {currentItems.map(item => (
-              <button
-                key={item.id}
-                onClick={() => setActiveItem(item)}
-                className="text-left border-b pb-5 flex gap-4 hover:opacity-80 transition"
-              >
-                <div className="flex-1 min-w-0">
-                  <p className="font-semibold">{item.name}</p>
-                  <p className="text-sm font-semibold text-gray-800 mt-0.5">
-                    ${item.base_price.toFixed(2)}
-                  </p>
-                  {item.description && (
-                    <p className="text-sm text-gray-500 mt-1">{item.description}</p>
-                  )}
-                </div>
-                {item.image_url && (
-                  <div className="relative w-28 h-28 shrink-0">
-                    <div
-                      className="w-full h-full rounded-lg bg-cover bg-center"
-                      style={{ backgroundImage: `url('${item.image_url}')` }}
-                    />
-                    <div className="absolute bottom-1 right-1 w-7 h-7 bg-white rounded-full shadow flex items-center justify-center text-lg leading-none">
-                      +
-                    </div>
-                  </div>
-                )}
-              </button>
-            ))}
-            {currentItems.length === 0 && (
-              <p className="text-gray-400 text-sm col-span-2">No items in this category yet.</p>
-            )}
-          </div>
-        </main>
-      </div>
+      {/* STICKY BOTTOM CTA — matches "Start order" bar pattern */}
+      {lines.length > 0 && (
+        <div className="fixed bottom-0 left-0 right-0 z-30 bg-white border-t px-4 py-3">
+          <button
+            onClick={() => setCartOpen(true)}
+            className="w-full bg-brand text-white py-3 rounded-full font-semibold flex items-center justify-center gap-2"
+          >
+            View cart · ${subtotal.toFixed(2)}
+          </button>
+        </div>
+      )}
 
       {activeItem && (
         <ItemModal item={activeItem} onClose={() => setActiveItem(null)} onAdd={addLine} />
