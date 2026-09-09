@@ -101,12 +101,19 @@ function MenuManager() {
 
     setUploading(true);
     try {
+      const parsedPrice = parseFloat(form.base_price.replace(/[^0-9.]/g, ''));
+      if (isNaN(parsedPrice)) {
+        setError('Price must be a number, e.g. 0.99 — no currency symbols.');
+        setUploading(false);
+        return;
+      }
+
       const imageUrl = await uploadPhotoIfAny();
       const { error: insertError } = await supabase.from('menu_items').insert({
         category_id: activeCat,
         name: form.name,
         description: form.description,
-        base_price: parseFloat(form.base_price),
+        base_price: parsedPrice,
         is_available: true,
         image_url: imageUrl,
         sort_order: items.filter(i => i.category_id === activeCat).length,
@@ -249,7 +256,7 @@ function MenuManager() {
                 className="w-full border rounded-lg px-3 py-2 text-sm" rows={2}
               />
               <input
-                placeholder="Price (e.g. 11.45)" value={form.base_price}
+                placeholder="Price — numbers only, e.g. 11.45" value={form.base_price}
                 onChange={e => setForm({ ...form, base_price: e.target.value })}
                 className="w-full border rounded-lg px-3 py-2 text-sm"
               />
