@@ -1,0 +1,30 @@
+import { supabase } from '@/lib/supabase';
+import MenuClient from './menu-client';
+
+export const revalidate = 60;
+
+async function getMenuData() {
+  const { data: categories } = await supabase
+    .from('categories')
+    .select('id, name, sort_order')
+    .order('sort_order');
+
+  const { data: items } = await supabase
+    .from('menu_items')
+    .select(`
+      id, category_id, name, description, base_price, image_url, is_available,
+      option_groups (
+        id, name, required, max_selections,
+        option_choices ( id, name, price_delta )
+      )
+    `)
+    .eq('is_available', true)
+    .order('sort_order');
+
+  return { categories: categories || [], items: items || [] };
+}
+
+export default async function MenuPage() {
+  const { categories, items } = await getMenuData();
+  return <MenuClient categories={categories} items={items} />;
+}
