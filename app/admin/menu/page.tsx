@@ -52,11 +52,15 @@ function MenuManager() {
   async function addCategory(e: React.FormEvent) {
     e.preventDefault();
     if (!newCatName) return;
-    const { data } = await supabase
+    const { data, error: insertError } = await supabase
       .from('categories')
       .insert({ name: newCatName, subtitle: newCatSubtitle || null, sort_order: categories.length })
       .select()
       .single();
+    if (insertError) {
+      setError(`Could not save category: ${insertError.message}`);
+      return;
+    }
     setNewCatName('');
     setNewCatSubtitle('');
     setAddingCategory(false);
@@ -98,7 +102,7 @@ function MenuManager() {
     setUploading(true);
     try {
       const imageUrl = await uploadPhotoIfAny();
-      await supabase.from('menu_items').insert({
+      const { error: insertError } = await supabase.from('menu_items').insert({
         category_id: activeCat,
         name: form.name,
         description: form.description,
@@ -107,6 +111,11 @@ function MenuManager() {
         image_url: imageUrl,
         sort_order: items.filter(i => i.category_id === activeCat).length,
       });
+      if (insertError) {
+        setError(`Could not save item: ${insertError.message}`);
+        setUploading(false);
+        return;
+      }
       setForm({ name: '', description: '', base_price: '' });
       setPhotoFile(null);
       setPhotoPreview(null);
