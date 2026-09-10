@@ -2,20 +2,31 @@ import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
 import OfferPopup from '@/components/OfferPopup';
 
-export const revalidate = 60; // refresh featured items every 60s
+export const revalidate = 60;
 
-async function getFeaturedItems() {
-  const { data } = await supabase
+async function getHomeData() {
+  const { data: content } = await supabase.from('homepage_content').select('*').eq('id', 1).single();
+  const { data: features } = await supabase.from('homepage_features').select('*').order('sort_order');
+  const { data: featured } = await supabase
     .from('menu_items')
     .select('id, name, description, base_price, image_url')
     .eq('is_available', true)
     .order('sort_order')
     .limit(6);
-  return data || [];
+  return { content, features: features || [], featured: featured || [] };
 }
 
 export default async function HomePage() {
-  const featured = await getFeaturedItems();
+  const { content, features, featured } = await getHomeData();
+
+  const heroHeadline = content?.hero_headline || 'Fresh, Fast, Made to Order';
+  const heroSubtext = content?.hero_subtext || 'Order directly from us — no delivery-app markup, just great food.';
+  const heroImage = content?.hero_image_url || '/hero.jpg';
+  const storyTitle = content?.story_title || 'Our Story';
+  const storyText = content?.story_text || "Replace this with your restaurant's story.";
+  const hoursLines = (content?.hours_text || '').split('\n').filter(Boolean);
+  const locationText = content?.location_text || '123 High Street, Your City';
+  const phoneText = content?.phone_text || '+44 0000 000000';
 
   return (
     <main>
@@ -43,16 +54,12 @@ export default async function HomePage() {
       <section className="relative h-[70vh] min-h-[420px] flex items-center justify-center text-center text-white">
         <div
           className="absolute inset-0 bg-cover bg-center"
-          style={{ backgroundImage: "url('/hero.jpg')" }}
+          style={{ backgroundImage: `url('${heroImage}')` }}
         />
         <div className="absolute inset-0 bg-black/50" />
         <div className="relative z-10 px-4 max-w-2xl">
-          <h1 className="text-4xl sm:text-5xl font-extrabold mb-4">
-            Fresh, Fast, Made to Order
-          </h1>
-          <p className="text-lg mb-6 opacity-90">
-            Order directly from us — no delivery-app markup, just great food.
-          </p>
+          <h1 className="text-4xl sm:text-5xl font-extrabold mb-4">{heroHeadline}</h1>
+          <p className="text-lg mb-6 opacity-90">{heroSubtext}</p>
           <Link
             href="/menu"
             className="inline-block bg-brand px-8 py-3 rounded-full font-semibold text-lg hover:bg-brand-dark transition"
@@ -75,11 +82,7 @@ export default async function HomePage() {
         </div>
         <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide snap-x snap-mandatory">
           {featured.map(item => (
-            <Link
-              key={item.id}
-              href={`/menu?item=${item.id}`}
-              className="group shrink-0 w-44 snap-start"
-            >
+            <Link key={item.id} href={`/menu?item=${item.id}`} className="group shrink-0 w-44 snap-start">
               <div className="relative w-44 h-44 rounded-2xl overflow-hidden bg-gray-100">
                 <div
                   className="w-full h-full bg-cover bg-center group-hover:scale-105 transition"
@@ -99,14 +102,41 @@ export default async function HomePage() {
         </div>
       </section>
 
+      {/* ALTERNATING FEATURE SHOWCASE — image/text blocks */}
+      {features.length > 0 && (
+        <section className="max-w-5xl mx-auto px-4 py-8 space-y-16">
+          {features.map((feature, idx) => {
+            const imageOnRight = idx % 2 === 1;
+            return (
+              <div
+                key={feature.id}
+                className={`flex flex-col sm:flex-row items-center gap-8 ${imageOnRight ? 'sm:flex-row-reverse' : ''}`}
+              >
+                {feature.image_url && (
+                  <div className="w-full sm:w-1/2">
+                    <div
+                      className="w-full h-64 sm:h-80 rounded-2xl bg-cover bg-center"
+                      style={{ backgroundImage: `url('${feature.image_url}')` }}
+                    />
+                  </div>
+                )}
+                <div className="w-full sm:w-1/2">
+                  <h3 className="text-2xl font-bold mb-3">{feature.title}</h3>
+                  {feature.description && (
+                    <p className="text-gray-600 leading-relaxed">{feature.description}</p>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </section>
+      )}
+
       {/* STORY */}
       <section id="story" className="bg-gray-50 py-16">
         <div className="max-w-3xl mx-auto px-4 text-center">
-          <h2 className="text-3xl font-bold mb-4">Our Story</h2>
-          <p className="text-gray-700 leading-relaxed">
-            Replace this with your restaurant's story — what makes your food, your process,
-            your ingredients different. Short, sensory, specific sells better than generic copy.
-          </p>
+          <h2 className="text-3xl font-bold mb-4">{storyTitle}</h2>
+          <p className="text-gray-700 leading-relaxed">{storyText}</p>
         </div>
       </section>
 
@@ -115,15 +145,13 @@ export default async function HomePage() {
         <div>
           <h3 className="text-xl font-bold mb-3">Hours</h3>
           <ul className="text-gray-700 space-y-1 text-sm">
-            <li>Mon–Thu: 11am – 9pm</li>
-            <li>Fri–Sat: 11am – 10pm</li>
-            <li>Sun: 12pm – 8pm</li>
+            {hoursLines.map((line, i) => <li key={i}>{line}</li>)}
           </ul>
         </div>
         <div>
           <h3 className="text-xl font-bold mb-3">Location</h3>
-          <p className="text-gray-700 text-sm">123 High Street, Your City</p>
-          <p className="text-gray-700 text-sm">+44 0000 000000</p>
+          <p className="text-gray-700 text-sm">{locationText}</p>
+          <p className="text-gray-700 text-sm">{phoneText}</p>
         </div>
       </section>
 
