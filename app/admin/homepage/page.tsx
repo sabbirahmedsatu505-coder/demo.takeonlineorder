@@ -6,6 +6,7 @@ import RequireAuth from '@/lib/require-auth';
 import AdminNav from '../admin-nav';
 
 type Content = {
+  site_name: string; logo_url: string | null;
   hero_image_url: string | null; hero_headline: string; hero_subtext: string;
   story_title: string; story_text: string; hours_text: string;
   location_text: string; phone_text: string;
@@ -26,6 +27,8 @@ function HomepageEditor() {
   const [features, setFeatures] = useState<Feature[]>([]);
   const [heroFile, setHeroFile] = useState<File | null>(null);
   const [heroPreview, setHeroPreview] = useState<string | null>(null);
+  const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [savedMsg, setSavedMsg] = useState('');
@@ -59,14 +62,19 @@ function HomepageEditor() {
       let heroUrl = content.hero_image_url;
       if (heroFile) heroUrl = await uploadPhoto(heroFile);
 
+      let logoUrl = content.logo_url;
+      if (logoFile) logoUrl = await uploadPhoto(logoFile);
+
       const { error: updateError } = await supabase
         .from('homepage_content')
-        .update({ ...content, hero_image_url: heroUrl })
+        .update({ ...content, hero_image_url: heroUrl, logo_url: logoUrl })
         .eq('id', 1);
 
       if (updateError) throw new Error(updateError.message);
       setHeroFile(null);
       setHeroPreview(null);
+      setLogoFile(null);
+      setLogoPreview(null);
       setSavedMsg('Saved!');
       setTimeout(() => setSavedMsg(''), 2000);
       loadAll();
@@ -114,7 +122,33 @@ function HomepageEditor() {
       </div>
 
       <form onSubmit={saveContent} className="border rounded-xl p-4 space-y-4">
-        <h2 className="font-semibold">Hero Section</h2>
+        <h2 className="font-semibold">Site Identity</h2>
+
+        <div>
+          <label className="block text-sm font-medium mb-1">Restaurant name</label>
+          <input
+            value={content.site_name}
+            onChange={e => setContent({ ...content, site_name: e.target.value })}
+            className="w-full border rounded-lg px-3 py-2 text-sm"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium mb-1">Logo (shows in the sidebar instead of the name if set)</label>
+          <input
+            type="file" accept="image/*"
+            onChange={e => {
+              const f = e.target.files?.[0];
+              if (f) { setLogoFile(f); setLogoPreview(URL.createObjectURL(f)); }
+            }}
+            className="w-full text-sm"
+          />
+          {(logoPreview || content.logo_url) && (
+            <img src={logoPreview || content.logo_url || ''} alt="Logo preview" className="mt-2 h-12" />
+          )}
+        </div>
+
+        <h2 className="font-semibold pt-2">Hero Section</h2>
 
         <div>
           <label className="block text-sm font-medium mb-1">Hero background photo</label>
