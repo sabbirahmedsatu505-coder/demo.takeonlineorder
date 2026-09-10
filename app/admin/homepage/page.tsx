@@ -10,7 +10,7 @@ type Content = {
   hero_image_url: string | null; hero_headline: string; hero_subtext: string;
   story_title: string; story_text: string; hours_text: string;
   location_text: string; phone_text: string;
-  hygiene_rating: number | null; hygiene_rating_url: string | null;
+  hygiene_rating_image_url: string | null;
 };
 type Feature = { id: string; title: string; description: string | null; image_url: string | null; sort_order: number };
 
@@ -30,6 +30,8 @@ function HomepageEditor() {
   const [heroPreview, setHeroPreview] = useState<string | null>(null);
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
+  const [hygieneFile, setHygieneFile] = useState<File | null>(null);
+  const [hygienePreview, setHygienePreview] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [savedMsg, setSavedMsg] = useState('');
@@ -66,9 +68,12 @@ function HomepageEditor() {
       let logoUrl = content.logo_url;
       if (logoFile) logoUrl = await uploadPhoto(logoFile);
 
+      let hygieneUrl = content.hygiene_rating_image_url;
+      if (hygieneFile) hygieneUrl = await uploadPhoto(hygieneFile);
+
       const { error: updateError } = await supabase
         .from('homepage_content')
-        .update({ ...content, hero_image_url: heroUrl, logo_url: logoUrl })
+        .update({ ...content, hero_image_url: heroUrl, logo_url: logoUrl, hygiene_rating_image_url: hygieneUrl })
         .eq('id', 1);
 
       if (updateError) throw new Error(updateError.message);
@@ -76,6 +81,8 @@ function HomepageEditor() {
       setHeroPreview(null);
       setLogoFile(null);
       setLogoPreview(null);
+      setHygieneFile(null);
+      setHygienePreview(null);
       setSavedMsg('Saved!');
       setTimeout(() => setSavedMsg(''), 2000);
       loadAll();
@@ -186,22 +193,25 @@ function HomepageEditor() {
 
         <h2 className="font-semibold pt-2">Food Hygiene Rating (optional)</h2>
         <p className="text-xs text-gray-400">
-          Shows a UK-style FSA hygiene rating badge under the "Order Now" button. Leave blank to hide it.
+          Upload a photo/graphic of your official hygiene rating (e.g. a screenshot from
+          ratings.food.gov.uk). It'll show under the "Order Now" button exactly as uploaded.
+          Leave empty to hide it.
         </p>
-        <select
-          value={content.hygiene_rating ?? ''}
-          onChange={e => setContent({ ...content, hygiene_rating: e.target.value === '' ? null : parseInt(e.target.value) })}
-          className="w-full border rounded-lg px-3 py-2 text-sm"
-        >
-          <option value="">Don't show a rating</option>
-          {[0, 1, 2, 3, 4, 5].map(n => <option key={n} value={n}>{n}</option>)}
-        </select>
         <input
-          placeholder="Link to your official FSA rating page (optional)"
-          value={content.hygiene_rating_url || ''}
-          onChange={e => setContent({ ...content, hygiene_rating_url: e.target.value })}
-          className="w-full border rounded-lg px-3 py-2 text-sm"
+          type="file" accept="image/*"
+          onChange={e => {
+            const f = e.target.files?.[0];
+            if (f) { setHygieneFile(f); setHygienePreview(URL.createObjectURL(f)); }
+          }}
+          className="w-full text-sm"
         />
+        {(hygienePreview || content.hygiene_rating_image_url) && (
+          <img
+            src={hygienePreview || content.hygiene_rating_image_url || ''}
+            alt="Hygiene rating preview"
+            className="h-24 mt-2"
+          />
+        )}
 
         <h2 className="font-semibold pt-2">Our Story</h2>
         <input
