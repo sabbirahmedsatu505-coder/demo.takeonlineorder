@@ -18,6 +18,7 @@ export default function AdminNav() {
         <nav className="flex gap-4 text-sm font-medium">
           <Link href="/admin/orders">Orders</Link>
           <Link href="/admin/menu">Menu</Link>
+          <Link href="/admin/homepage">Homepage</Link>
           <Link href="/admin/offers">Offers</Link>
         </nav>
         <button onClick={handleLogout} className="text-sm text-gray-400 underline">
