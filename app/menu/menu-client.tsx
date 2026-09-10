@@ -88,11 +88,11 @@ export default function MenuClient({
   }
 
   return (
-    <div className="flex">
+    <div className="flex flex-col md:flex-row">
       <Sidebar siteName={siteName} logoUrl={logoUrl} />
 
       <div className="flex-1 min-w-0">
-        <header className="sticky top-0 z-30 bg-white border-b">
+        <header className="sticky top-14 md:top-0 z-30 bg-white border-b">
           <div className="flex items-center justify-end px-4 py-3">
             <button
               onClick={() => setCartOpen(true)}
@@ -115,6 +115,7 @@ export default function MenuClient({
                 {cat.name}
               </button>
             ))}
+            <div className="shrink-0 w-2" aria-hidden />
           </div>
         </header>
 
