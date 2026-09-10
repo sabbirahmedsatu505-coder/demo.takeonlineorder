@@ -145,7 +145,7 @@ export default async function HomePage() {
         <div>
           <h3 className="text-xl font-bold mb-3">Hours</h3>
           <ul className="text-gray-700 space-y-1 text-sm">
-            {hoursLines.map((line, i) => <li key={i}>{line}</li>)}
+            {hoursLines.map((line: string, i: number) => <li key={i}>{line}</li>)}
           </ul>
         </div>
         <div>
