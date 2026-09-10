@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { useCart } from '@/lib/cart-context';
+import Sidebar from '@/components/Sidebar';
 
 type Choice = { id: string; name: string; price_delta: number };
 type OptionGroup = { id: string; name: string; required: boolean; max_selections: number; option_choices: Choice[] };
@@ -15,8 +16,8 @@ type Category = { id: string; name: string; subtitle: string | null; sort_order:
 type Subcategory = { id: string; category_id: string; name: string; sort_order: number };
 
 export default function MenuClient({
-  categories, subcategories, items,
-}: { categories: Category[]; subcategories: Subcategory[]; items: MenuItem[] }) {
+  categories, subcategories, items, siteName, logoUrl,
+}: { categories: Category[]; subcategories: Subcategory[]; items: MenuItem[]; siteName: string; logoUrl: string | null }) {
   const { lines, addLine, removeLine, updateQuantity, subtotal, itemCount } = useCart();
   const [activeItem, setActiveItem] = useState<MenuItem | null>(null);
   const [cartOpen, setCartOpen] = useState(false);
@@ -87,33 +88,35 @@ export default function MenuClient({
   }
 
   return (
-    <div>
-      <header className="sticky top-0 z-40 bg-white border-b">
-        <div className="max-w-6xl mx-auto flex items-center justify-between px-4 py-3">
-          <Link href="/" className="text-lg font-bold text-brand">Your Restaurant</Link>
-          <button
-            onClick={() => setCartOpen(true)}
-            className="relative bg-brand text-white px-4 py-2 rounded-full text-sm font-semibold hover:bg-brand-dark transition"
-          >
-            Cart {itemCount > 0 && `(${itemCount})`}
-          </button>
-        </div>
+    <div className="flex">
+      <Sidebar siteName={siteName} logoUrl={logoUrl} />
 
-        <div className="flex gap-2 overflow-x-auto px-4 pb-3 scrollbar-hide">
-          {categories.map(cat => (
+      <div className="flex-1 min-w-0">
+        <header className="sticky top-0 z-30 bg-white border-b">
+          <div className="flex items-center justify-end px-4 py-3">
             <button
-              key={cat.id}
-              ref={el => { tabRefs.current[cat.id] = el; }}
-              onClick={() => goToCategory(cat.id)}
-              className={`whitespace-nowrap px-4 py-2 rounded-full text-sm font-semibold border transition shrink-0 ${
-                activeCat === cat.id ? 'bg-black text-white border-black' : 'border-gray-300 text-gray-700'
-              }`}
+              onClick={() => setCartOpen(true)}
+              className="relative bg-brand text-white px-4 py-2 rounded-full text-sm font-semibold hover:bg-brand-dark transition"
             >
-              {cat.name}
+              Cart {itemCount > 0 && `(${itemCount})`}
             </button>
-          ))}
-        </div>
-      </header>
+          </div>
+
+          <div className="flex gap-2 overflow-x-auto px-4 pb-3 scrollbar-hide">
+            {categories.map(cat => (
+              <button
+                key={cat.id}
+                ref={el => { tabRefs.current[cat.id] = el; }}
+                onClick={() => goToCategory(cat.id)}
+                className={`whitespace-nowrap px-4 py-2 rounded-full text-sm font-semibold border transition shrink-0 ${
+                  activeCat === cat.id ? 'bg-black text-white border-black' : 'border-gray-300 text-gray-700'
+                }`}
+              >
+                {cat.name}
+              </button>
+            ))}
+          </div>
+        </header>
 
       <main className="max-w-3xl mx-auto px-4 py-6 pb-24">
         {categories.map(cat => {
@@ -194,6 +197,7 @@ export default function MenuClient({
           </button>
         </div>
       )}
+      </div>
 
       {activeItem && (
         <ItemModal item={activeItem} onClose={() => setActiveItem(null)} onAdd={addLine} />
