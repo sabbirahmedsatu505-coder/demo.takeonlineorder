@@ -31,8 +31,7 @@ export default async function HomePage() {
   const hoursLines = (content?.hours_text || '').split('\n').filter(Boolean);
   const locationText = content?.location_text || '123 High Street, Your City';
   const phoneText = content?.phone_text || '+44 0000 000000';
-  const hygieneRating = content?.hygiene_rating || null;
-  const hygieneRatingUrl = content?.hygiene_rating_url || null;
+  const hygieneRatingImageUrl = content?.hygiene_rating_image_url || null;
 
   return (
     <div className="flex">
@@ -55,29 +54,14 @@ export default async function HomePage() {
               View Menu &amp; Order
             </Link>
 
-            {hygieneRating !== null && (
+            {hygieneRatingImageUrl && (
               <a
-                href={hygieneRatingUrl || 'https://ratings.food.gov.uk'}
+                href={hygieneRatingImageUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="mt-6 inline-flex flex-col items-center bg-white text-black rounded-lg overflow-hidden shadow-lg text-xs"
+                className="mt-6 inline-block"
               >
-                <span className="bg-green-700 text-white px-3 py-1 font-semibold tracking-wide">
-                  FOOD HYGIENE RATING
-                </span>
-                <span className="flex items-center gap-1 px-3 py-2">
-                  {[0, 1, 2, 3, 4, 5].map(n => (
-                    <span
-                      key={n}
-                      className={`w-6 h-6 rounded-full flex items-center justify-center font-bold border ${
-                        n === hygieneRating ? 'bg-black text-white border-black' : 'bg-white text-gray-400 border-gray-300'
-                      }`}
-                    >
-                      {n}
-                    </span>
-                  ))}
-                </span>
-                <span className="bg-green-700 text-white px-3 py-0.5 text-[10px]">VIEW GOOD</span>
+                <img src={hygieneRatingImageUrl} alt="Food Hygiene Rating" className="h-24" />
               </a>
             )}
           </div>
