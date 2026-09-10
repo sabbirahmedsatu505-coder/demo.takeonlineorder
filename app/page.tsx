@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
 import OfferPopup from '@/components/OfferPopup';
+import MostOrderedCarousel from '@/components/MostOrderedCarousel';
 
 export const revalidate = 60;
 
@@ -80,26 +81,7 @@ export default async function HomePage() {
             View menu <span aria-hidden>›</span>
           </Link>
         </div>
-        <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide snap-x snap-mandatory">
-          {featured.map(item => (
-            <Link key={item.id} href={`/menu?item=${item.id}`} className="group shrink-0 w-44 snap-start">
-              <div className="relative w-44 h-44 rounded-2xl overflow-hidden bg-gray-100">
-                <div
-                  className="w-full h-full bg-cover bg-center group-hover:scale-105 transition"
-                  style={{ backgroundImage: item.image_url ? `url('${item.image_url}')` : undefined }}
-                />
-                <div className="absolute bottom-2 right-2 w-9 h-9 bg-white rounded-full shadow flex items-center justify-center text-xl font-bold leading-none">
-                  +
-                </div>
-              </div>
-              <p className="font-semibold text-sm mt-2">{item.name}</p>
-              <p className="text-gray-600 text-sm">${item.base_price.toFixed(2)}</p>
-            </Link>
-          ))}
-          {featured.length === 0 && (
-            <p className="text-gray-400 text-sm">No items yet — add some in the menu manager.</p>
-          )}
-        </div>
+        <MostOrderedCarousel items={featured} />
       </section>
 
       {/* ALTERNATING FEATURE SHOWCASE — image/text blocks */}
