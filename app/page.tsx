@@ -31,6 +31,8 @@ export default async function HomePage() {
   const hoursLines = (content?.hours_text || '').split('\n').filter(Boolean);
   const locationText = content?.location_text || '123 High Street, Your City';
   const phoneText = content?.phone_text || '+44 0000 000000';
+  const hygieneRating = content?.hygiene_rating || null;
+  const hygieneRatingUrl = content?.hygiene_rating_url || null;
 
   return (
     <div className="flex">
@@ -43,7 +45,7 @@ export default async function HomePage() {
         <section className="relative h-[70vh] min-h-[420px] flex items-center justify-center text-center text-white">
           <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: `url('${heroImage}')` }} />
           <div className="absolute inset-0 bg-black/50" />
-          <div className="relative z-10 px-4 max-w-2xl">
+          <div className="relative z-10 px-4 max-w-2xl flex flex-col items-center">
             <h1 className="text-4xl sm:text-5xl font-extrabold mb-4">{heroHeadline}</h1>
             <p className="text-lg mb-6 opacity-90">{heroSubtext}</p>
             <Link
@@ -52,6 +54,32 @@ export default async function HomePage() {
             >
               View Menu &amp; Order
             </Link>
+
+            {hygieneRating !== null && (
+              <a
+                href={hygieneRatingUrl || 'https://ratings.food.gov.uk'}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-6 inline-flex flex-col items-center bg-white text-black rounded-lg overflow-hidden shadow-lg text-xs"
+              >
+                <span className="bg-green-700 text-white px-3 py-1 font-semibold tracking-wide">
+                  FOOD HYGIENE RATING
+                </span>
+                <span className="flex items-center gap-1 px-3 py-2">
+                  {[0, 1, 2, 3, 4, 5].map(n => (
+                    <span
+                      key={n}
+                      className={`w-6 h-6 rounded-full flex items-center justify-center font-bold border ${
+                        n === hygieneRating ? 'bg-black text-white border-black' : 'bg-white text-gray-400 border-gray-300'
+                      }`}
+                    >
+                      {n}
+                    </span>
+                  ))}
+                </span>
+                <span className="bg-green-700 text-white px-3 py-0.5 text-[10px]">VIEW GOOD</span>
+              </a>
+            )}
           </div>
         </section>
 
