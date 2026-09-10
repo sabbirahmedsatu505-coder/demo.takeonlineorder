@@ -65,7 +65,7 @@ export default async function HomePage() {
       {/* MOST ORDERED — horizontal swipeable carousel */}
       <section className="max-w-6xl mx-auto px-4 py-16">
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-3xl font-bold">Featured</h2>
+          <h2 className="text-3xl font-bold">Most Ordered</h2>
           <Link
             href="/menu"
             className="flex items-center gap-1 border rounded-full px-4 py-2 text-sm font-semibold hover:bg-gray-50 transition"
