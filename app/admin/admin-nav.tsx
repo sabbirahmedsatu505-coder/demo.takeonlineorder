@@ -19,6 +19,7 @@ export default function AdminNav() {
           <Link href="/admin/orders">Orders</Link>
           <Link href="/admin/menu">Menu</Link>
           <Link href="/admin/homepage">Homepage</Link>
+          <Link href="/admin/gallery">Gallery</Link>
           <Link href="/admin/offers">Offers</Link>
         </nav>
         <button onClick={handleLogout} className="text-sm text-gray-400 underline">
