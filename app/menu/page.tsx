@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase';
+import { getSiteSettings } from '@/lib/site-settings';
 import MenuClient from './menu-client';
 
 export const revalidate = 60;
@@ -31,5 +32,6 @@ async function getMenuData() {
 
 export default async function MenuPage() {
   const { categories, subcategories, items } = await getMenuData();
-  return <MenuClient categories={categories} subcategories={subcategories} items={items} />;
+  const { siteName, logoUrl } = await getSiteSettings();
+  return <MenuClient categories={categories} subcategories={subcategories} items={items} siteName={siteName} logoUrl={logoUrl} />;
 }
