@@ -34,14 +34,14 @@ export default async function HomePage() {
   const hygieneRatingImageUrl = content?.hygiene_rating_image_url || null;
 
   return (
-    <div className="flex">
+    <div className="flex flex-col md:flex-row">
       <Sidebar siteName={siteName} logoUrl={logoUrl} />
 
       <main className="flex-1 min-w-0">
         <OfferPopup />
 
         {/* HERO */}
-        <section className="relative h-[70vh] min-h-[420px] flex items-center justify-center text-center text-white">
+        <section className="relative min-h-[480px] py-20 flex items-center justify-center text-center text-white">
           <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: `url('${heroImage}')` }} />
           <div className="absolute inset-0 bg-black/50" />
           <div className="relative z-10 px-4 max-w-2xl flex flex-col items-center">
@@ -59,7 +59,7 @@ export default async function HomePage() {
                 href={hygieneRatingImageUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="mt-6 inline-block"
+                className="mt-4 inline-block"
               >
                 <img src={hygieneRatingImageUrl} alt="Food Hygiene Rating" className="h-24" />
               </a>
