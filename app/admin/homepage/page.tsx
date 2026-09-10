@@ -10,6 +10,7 @@ type Content = {
   hero_image_url: string | null; hero_headline: string; hero_subtext: string;
   story_title: string; story_text: string; hours_text: string;
   location_text: string; phone_text: string;
+  hygiene_rating: number | null; hygiene_rating_url: string | null;
 };
 type Feature = { id: string; title: string; description: string | null; image_url: string | null; sort_order: number };
 
@@ -182,6 +183,25 @@ function HomepageEditor() {
             className="w-full border rounded-lg px-3 py-2 text-sm"
           />
         </div>
+
+        <h2 className="font-semibold pt-2">Food Hygiene Rating (optional)</h2>
+        <p className="text-xs text-gray-400">
+          Shows a UK-style FSA hygiene rating badge under the "Order Now" button. Leave blank to hide it.
+        </p>
+        <select
+          value={content.hygiene_rating ?? ''}
+          onChange={e => setContent({ ...content, hygiene_rating: e.target.value === '' ? null : parseInt(e.target.value) })}
+          className="w-full border rounded-lg px-3 py-2 text-sm"
+        >
+          <option value="">Don't show a rating</option>
+          {[0, 1, 2, 3, 4, 5].map(n => <option key={n} value={n}>{n}</option>)}
+        </select>
+        <input
+          placeholder="Link to your official FSA rating page (optional)"
+          value={content.hygiene_rating_url || ''}
+          onChange={e => setContent({ ...content, hygiene_rating_url: e.target.value })}
+          className="w-full border rounded-lg px-3 py-2 text-sm"
+        />
 
         <h2 className="font-semibold pt-2">Our Story</h2>
         <input
