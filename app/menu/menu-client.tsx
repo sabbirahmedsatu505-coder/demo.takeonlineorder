@@ -7,13 +7,16 @@ import { useCart } from '@/lib/cart-context';
 type Choice = { id: string; name: string; price_delta: number };
 type OptionGroup = { id: string; name: string; required: boolean; max_selections: number; option_choices: Choice[] };
 type MenuItem = {
-  id: string; category_id: string; name: string; description: string | null;
-  base_price: number; image_url: string | null; is_available: boolean;
+  id: string; category_id: string; subcategory_id: string | null; name: string; description: string | null;
+  base_price: number; image_url: string | null; is_available: boolean; is_popular: boolean;
   option_groups: OptionGroup[];
 };
 type Category = { id: string; name: string; subtitle: string | null; sort_order: number };
+type Subcategory = { id: string; category_id: string; name: string; sort_order: number };
 
-export default function MenuClient({ categories, items }: { categories: Category[]; items: MenuItem[] }) {
+export default function MenuClient({
+  categories, subcategories, items,
+}: { categories: Category[]; subcategories: Subcategory[]; items: MenuItem[] }) {
   const { lines, addLine, removeLine, updateQuantity, subtotal, itemCount } = useCart();
   const [activeItem, setActiveItem] = useState<MenuItem | null>(null);
   const [cartOpen, setCartOpen] = useState(false);
@@ -21,7 +24,6 @@ export default function MenuClient({ categories, items }: { categories: Category
 
   const sectionRefs = useRef<Record<string, HTMLElement | null>>({});
   const tabRefs = useRef<Record<string, HTMLButtonElement | null>>({});
-  const tabBarRef = useRef<HTMLDivElement | null>(null);
   const isClickScrolling = useRef(false);
 
   const itemsByCategory = useMemo(() => {
@@ -32,7 +34,30 @@ export default function MenuClient({ categories, items }: { categories: Category
     return map;
   }, [items]);
 
-  // Scroll-spy: highlight the tab for whichever section is currently in view
+  const subcatsByCategory = useMemo(() => {
+    const map: Record<string, Subcategory[]> = {};
+    for (const sub of subcategories) {
+      (map[sub.category_id] ||= []).push(sub);
+    }
+    return map;
+  }, [subcategories]);
+
+  // Group a category's items by subcategory; items with no subcategory_id go in an "Other" bucket
+  function groupItemsBySubcategory(catId: string) {
+    const catItems = itemsByCategory[catId] || [];
+    const subs = subcatsByCategory[catId] || [];
+    const groups: { id: string | null; name: string | null; items: MenuItem[] }[] = [];
+
+    for (const sub of subs) {
+      const subItems = catItems.filter(i => i.subcategory_id === sub.id);
+      if (subItems.length > 0) groups.push({ id: sub.id, name: sub.name, items: subItems });
+    }
+    const ungrouped = catItems.filter(i => !i.subcategory_id);
+    if (ungrouped.length > 0) groups.push({ id: null, name: null, items: ungrouped });
+
+    return groups;
+  }
+
   useEffect(() => {
     const observer = new IntersectionObserver(
       entries => {
@@ -50,7 +75,6 @@ export default function MenuClient({ categories, items }: { categories: Category
     return () => observer.disconnect();
   }, [categories, items]);
 
-  // Keep the active tab scrolled into view within the horizontal tab bar
   useEffect(() => {
     tabRefs.current[activeCat]?.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
   }, [activeCat]);
@@ -64,7 +88,6 @@ export default function MenuClient({ categories, items }: { categories: Category
 
   return (
     <div>
-      {/* TOP BAR */}
       <header className="sticky top-0 z-40 bg-white border-b">
         <div className="max-w-6xl mx-auto flex items-center justify-between px-4 py-3">
           <Link href="/" className="text-lg font-bold text-brand">Your Restaurant</Link>
@@ -76,12 +99,7 @@ export default function MenuClient({ categories, items }: { categories: Category
           </button>
         </div>
 
-        {/* HORIZONTAL SCROLLABLE CATEGORY TABS */}
-        <div
-          ref={tabBarRef}
-          className="flex gap-2 overflow-x-auto px-4 pb-3 scrollbar-hide"
-          style={{ scrollbarWidth: 'none' }}
-        >
+        <div className="flex gap-2 overflow-x-auto px-4 pb-3 scrollbar-hide">
           {categories.map(cat => (
             <button
               key={cat.id}
@@ -97,57 +115,75 @@ export default function MenuClient({ categories, items }: { categories: Category
         </div>
       </header>
 
-      {/* ALL CATEGORIES AS STACKED SCROLLABLE SECTIONS */}
       <main className="max-w-3xl mx-auto px-4 py-6 pb-24">
-        {categories.map(cat => (
-          <section
-            key={cat.id}
-            data-cat-id={cat.id}
-            ref={el => { sectionRefs.current[cat.id] = el; }}
-            className="mb-10 scroll-mt-32"
-          >
-            <h2 className="text-2xl font-bold">{cat.name}</h2>
-            {cat.subtitle && (
-              <p className="text-gray-500 text-sm italic mt-1 mb-4">"{cat.subtitle}"</p>
-            )}
-            <div className="divide-y">
-              {(itemsByCategory[cat.id] || []).map(item => (
-                <button
-                  key={item.id}
-                  onClick={() => setActiveItem(item)}
-                  className="w-full text-left py-4 flex gap-4 hover:opacity-80 transition"
-                >
-                  <div className="flex-1 min-w-0">
-                    <p className="font-semibold">{item.name}</p>
-                    <p className="text-sm font-semibold text-gray-800 mt-0.5">
-                      ${item.base_price.toFixed(2)}{item.option_groups.length > 0 && '+'}
-                    </p>
-                    {item.description && (
-                      <p className="text-sm text-gray-500 mt-1">{item.description}</p>
-                    )}
-                  </div>
-                  {item.image_url && (
-                    <div className="relative w-24 h-24 shrink-0">
-                      <div
-                        className="w-full h-full rounded-lg bg-cover bg-center"
-                        style={{ backgroundImage: `url('${item.image_url}')` }}
-                      />
-                      <div className="absolute bottom-1 right-1 w-7 h-7 bg-white rounded-full shadow flex items-center justify-center text-lg leading-none">
-                        +
-                      </div>
-                    </div>
+        {categories.map(cat => {
+          const groups = groupItemsBySubcategory(cat.id);
+          return (
+            <section
+              key={cat.id}
+              data-cat-id={cat.id}
+              ref={el => { sectionRefs.current[cat.id] = el; }}
+              className="mb-10 scroll-mt-32"
+            >
+              <h2 className="text-2xl font-bold">{cat.name}</h2>
+              {cat.subtitle && (
+                <p className="text-gray-500 text-sm italic mt-1 mb-4">"{cat.subtitle}"</p>
+              )}
+
+              {groups.map((group, idx) => (
+                <div key={group.id || 'ungrouped'} className={idx > 0 ? 'mt-6' : 'mt-2'}>
+                  {group.name && (
+                    <h3 className="text-lg font-bold mb-1">{group.name}</h3>
                   )}
-                </button>
+                  <div className="divide-y">
+                    {group.items.map(item => (
+                      <button
+                        key={item.id}
+                        onClick={() => setActiveItem(item)}
+                        className="w-full text-left py-4 flex gap-4 hover:opacity-80 transition"
+                      >
+                        <div className="flex-1 min-w-0">
+                          <p className="font-semibold">{item.name}</p>
+                          {item.is_popular && (
+                            <p className="text-xs text-orange-600 font-semibold mt-0.5">🔥 Popular</p>
+                          )}
+                          <p className="text-sm font-semibold text-gray-800 mt-0.5">
+                            ${item.base_price.toFixed(2)}{item.option_groups.length > 0 && '+'}
+                          </p>
+                          {item.description && (
+                            <p className="text-sm text-gray-500 mt-1">{item.description}</p>
+                          )}
+                        </div>
+                        {item.image_url && (
+                          <div className="relative w-24 h-24 shrink-0">
+                            <div
+                              className="w-full h-full rounded-lg bg-cover bg-center"
+                              style={{ backgroundImage: `url('${item.image_url}')` }}
+                            />
+                            <div className="absolute bottom-1 right-1 w-7 h-7 bg-white rounded-full shadow flex items-center justify-center text-lg leading-none">
+                              +
+                            </div>
+                          </div>
+                        )}
+                        {!item.image_url && (
+                          <div className="w-9 h-9 shrink-0 bg-green-600 text-white rounded-lg flex items-center justify-center text-lg font-bold self-center">
+                            +
+                          </div>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                </div>
               ))}
-              {(itemsByCategory[cat.id] || []).length === 0 && (
+
+              {groups.length === 0 && (
                 <p className="text-gray-400 text-sm py-4">No items in this category yet.</p>
               )}
-            </div>
-          </section>
-        ))}
+            </section>
+          );
+        })}
       </main>
 
-      {/* STICKY BOTTOM CTA — matches "Start order" bar pattern */}
       {lines.length > 0 && (
         <div className="fixed bottom-0 left-0 right-0 z-30 bg-white border-t px-4 py-3">
           <button
@@ -176,7 +212,6 @@ export default function MenuClient({ categories, items }: { categories: Category
   );
 }
 
-// ============ ITEM CUSTOMIZATION MODAL ============
 function ItemModal({
   item, onClose, onAdd,
 }: {
@@ -280,7 +315,6 @@ function ItemModal({
   );
 }
 
-// ============ CART DRAWER ============
 function CartDrawer({
   lines, subtotal, onClose, onRemove, onUpdateQty,
 }: {
