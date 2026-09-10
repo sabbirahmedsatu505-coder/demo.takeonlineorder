@@ -7,7 +7,7 @@ export default async function ContactUsPage() {
   const { siteName, logoUrl } = await getSiteSettings();
 
   return (
-    <div className="flex">
+    <div className="flex flex-col md:flex-row">
       <Sidebar siteName={siteName} logoUrl={logoUrl} />
       <main className="flex-1 min-w-0 max-w-3xl mx-auto px-4 py-10">
         <h1 className="text-3xl font-bold mb-4">Contact Us</h1>
