@@ -16,8 +16,9 @@ const STATUS_FLOW = ['pending', 'preparing', 'ready', 'completed'];
 export default function AdminOrdersPage() {
   return (
     <RequireAuth>
-      <AdminNav />
-      <OrdersDashboard />
+      <AdminNav>
+        <OrdersDashboard />
+      </AdminNav>
     </RequireAuth>
   );
 }
