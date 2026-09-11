@@ -10,8 +10,9 @@ type GalleryImage = { id: string; image_url: string; caption: string | null; sor
 export default function AdminGalleryPage() {
   return (
     <RequireAuth>
-      <AdminNav />
-      <GalleryManager />
+      <AdminNav>
+        <GalleryManager />
+      </AdminNav>
     </RequireAuth>
   );
 }
