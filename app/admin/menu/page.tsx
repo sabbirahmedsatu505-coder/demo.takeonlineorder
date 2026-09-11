@@ -15,8 +15,9 @@ type MenuItem = {
 export default function AdminMenuPage() {
   return (
     <RequireAuth>
-      <AdminNav />
-      <MenuManager />
+      <AdminNav>
+        <MenuManager />
+      </AdminNav>
     </RequireAuth>
   );
 }
