@@ -17,8 +17,9 @@ type Feature = { id: string; title: string; description: string | null; image_ur
 export default function AdminHomepagePage() {
   return (
     <RequireAuth>
-      <AdminNav />
-      <HomepageEditor />
+      <AdminNav>
+        <HomepageEditor />
+      </AdminNav>
     </RequireAuth>
   );
 }
