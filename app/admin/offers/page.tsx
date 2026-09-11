@@ -13,8 +13,9 @@ type Offer = {
 export default function AdminOffersPage() {
   return (
     <RequireAuth>
-      <AdminNav />
-      <OffersEditor />
+      <AdminNav>
+        <OffersEditor />
+      </AdminNav>
     </RequireAuth>
   );
 }
