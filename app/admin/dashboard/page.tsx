@@ -28,9 +28,6 @@ function Dashboard() {
 
   useEffect(() => {
     async function load() {
-      const todayStart = new Date();
-      todayStart.setHours(0, 0, 0, 0);
-
       const { data: allOrders } = await supabase
         .from('orders')
         .select('id, order_number, customer_name, status, payment_status, payment_method, total, created_at')
@@ -43,7 +40,6 @@ function Dashboard() {
 
       setOrders(allOrders || []);
 
-      // Aggregate top dishes by total quantity ordered
       const counts: Record<string, number> = {};
       (itemRows || []).forEach(row => {
         counts[row.item_name] = (counts[row.item_name] || 0) + row.quantity;
@@ -56,7 +52,18 @@ function Dashboard() {
 
       setLoading(false);
     }
+
     load();
+
+    // Live updates — no manual refresh needed. Any new order, status change,
+    // or payment confirmation re-pulls the dashboard data instantly.
+    const channel = supabase
+      .channel('dashboard-live')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => load())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'order_items' }, () => load())
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
   }, []);
 
   const todayStart = new Date();
