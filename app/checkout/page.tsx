@@ -1,8 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useCart } from '@/lib/cart-context';
+import { getBestDiscount, ActiveDiscount } from '@/lib/discounts';
 import { loadStripe } from '@stripe/stripe-js';
 import {
   Elements, PaymentElement, useStripe, useElements,
@@ -15,6 +16,17 @@ export default function CheckoutPage() {
   const router = useRouter();
 
   const [orderType, setOrderType] = useState<'pickup' | 'delivery'>('pickup');
+  const [discount, setDiscount] = useState<{ amount: number; offer: ActiveDiscount | null }>({ amount: 0, offer: null });
+
+  useEffect(() => {
+    let cancelled = false;
+    getBestDiscount(orderType, subtotal).then(({ discountAmount, appliedOffer }) => {
+      if (!cancelled) setDiscount({ amount: discountAmount, offer: appliedOffer });
+    });
+    return () => { cancelled = true; };
+  }, [orderType, subtotal]);
+
+  const total = Math.max(subtotal - discount.amount, 0);
   const [paymentMethod, setPaymentMethod] = useState<'card' | 'cash'>('card');
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
@@ -138,14 +150,26 @@ export default function CheckoutPage() {
           />
         )}
 
-        <div className="border-t pt-4 flex justify-between font-bold">
-          <span>Subtotal</span>
-          <span>${subtotal.toFixed(2)}</span>
+        <div className="border-t pt-4 space-y-1">
+          <div className="flex justify-between text-sm text-gray-600">
+            <span>Subtotal</span>
+            <span>${subtotal.toFixed(2)}</span>
+          </div>
+          {discount.amount > 0 && discount.offer && (
+            <div className="flex justify-between text-sm text-green-600 font-medium">
+              <span>{discount.offer.title}</span>
+              <span>−${discount.amount.toFixed(2)}</span>
+            </div>
+          )}
+          <div className="flex justify-between font-bold text-base pt-1">
+            <span>Total</span>
+            <span>${total.toFixed(2)}</span>
+          </div>
         </div>
 
         {paymentMethod === 'cash' && (
           <p className="text-xs text-gray-500 bg-gray-50 border rounded-lg p-3">
-            You'll pay ${subtotal.toFixed(2)} in cash when your order is {orderType === 'pickup' ? 'picked up' : 'delivered'}.
+            You'll pay ${total.toFixed(2)} in cash when your order is {orderType === 'pickup' ? 'picked up' : 'delivered'}.
           </p>
         )}
 
