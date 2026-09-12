@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { getSupabaseAdmin } from '@/lib/supabase';
 import { printOrder } from '@/lib/print';
+import { getBestDiscount } from '@/lib/discounts';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 
@@ -21,6 +22,11 @@ export async function POST(req: Request) {
     const supabaseAdmin = getSupabaseAdmin();
     const isCash = payment_method === 'cash';
 
+    // Recompute the discount server-side — never trust a discount amount sent
+    // from the browser, since that would let anyone edit it before submitting.
+    const { discountAmount, appliedOffer } = await getBestDiscount(order_type, subtotal);
+    const total = Math.max(subtotal - discountAmount, 0);
+
     // 1. Create the order.
     // Cash orders go straight to "preparing" (staff accept it in person / on pickup),
     // card orders stay "pending" until the Stripe webhook confirms payment.
@@ -36,7 +42,10 @@ export async function POST(req: Request) {
         status: isCash ? 'preparing' : 'pending',
         payment_status: isCash ? 'unpaid' : 'unpaid', // cash stays "unpaid" until collected in person
         subtotal,
-        total: subtotal,
+        discount_amount: discountAmount,
+        applied_offer_id: appliedOffer?.id || null,
+        applied_offer_title: appliedOffer?.title || null,
+        total,
       })
       .select()
       .single();
@@ -64,13 +73,13 @@ export async function POST(req: Request) {
     // 3a. CASH ORDER — no Stripe needed. Print immediately, order is placed.
     if (isCash) {
       await printOrder(order.id);
-      return NextResponse.json({ orderId: order.id, paymentMethod: 'cash' });
+      return NextResponse.json({ orderId: order.id, paymentMethod: 'cash', total, discountAmount });
     }
 
-    // 3b. CARD ORDER — create Stripe PaymentIntent, printing happens later via webhook
-    // once payment_intent.succeeded fires (see app/api/stripe-webhook/route.ts).
+    // 3b. CARD ORDER — create Stripe PaymentIntent for the DISCOUNTED total,
+    // printing happens later via webhook once payment_intent.succeeded fires.
     const paymentIntent = await stripe.paymentIntents.create({
-      amount: Math.round(subtotal * 100),
+      amount: Math.round(total * 100), // charge the discounted amount, not the raw subtotal
       currency: 'usd', // change per client market: 'gbp', 'aed', etc.
       metadata: { order_id: order.id },
     });
@@ -80,7 +89,7 @@ export async function POST(req: Request) {
       .update({ stripe_payment_intent_id: paymentIntent.id })
       .eq('id', order.id);
 
-    return NextResponse.json({ clientSecret: paymentIntent.client_secret, orderId: order.id });
+    return NextResponse.json({ clientSecret: paymentIntent.client_secret, orderId: order.id, total, discountAmount });
   } catch (err: any) {
     console.error(err);
     return NextResponse.json({ error: err.message || 'Something went wrong' }, { status: 500 });
