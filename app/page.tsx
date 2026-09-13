@@ -16,11 +16,48 @@ async function getHomeData() {
     .eq('is_available', true)
     .order('sort_order')
     .limit(6);
-  return { content, features: features || [], featured: featured || [] };
+
+  // Real "Top 3 This Week" — based on actual order history, not just menu order.
+  // Falls back to the first 3 featured items if there's no order history yet.
+  const oneWeekAgo = new Date();
+  oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+
+  const { data: recentItems } = await supabase
+    .from('order_items')
+    .select('menu_item_id, quantity, orders!inner(created_at)')
+    .gte('orders.created_at', oneWeekAgo.toISOString());
+
+  let topThree: typeof featured = [];
+  if (recentItems && recentItems.length > 0) {
+    const counts: Record<string, number> = {};
+    for (const row of recentItems as any[]) {
+      if (!row.menu_item_id) continue;
+      counts[row.menu_item_id] = (counts[row.menu_item_id] || 0) + row.quantity;
+    }
+    const topIds = Object.entries(counts)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 3)
+      .map(([id]) => id);
+
+    if (topIds.length > 0) {
+      const { data: topItems } = await supabase
+        .from('menu_items')
+        .select('id, name, description, base_price, image_url')
+        .in('id', topIds)
+        .eq('is_available', true);
+      // Keep them ordered by popularity, not database order
+      topThree = topIds
+        .map(id => topItems?.find(i => i.id === id))
+        .filter(Boolean) as typeof featured;
+    }
+  }
+  if (topThree.length === 0) topThree = (featured || []).slice(0, 3);
+
+  return { content, features: features || [], featured: featured || [], topThree };
 }
 
 export default async function HomePage() {
-  const { content, features, featured } = await getHomeData();
+  const { content, features, featured, topThree } = await getHomeData();
   const { siteName, logoUrl } = await getSiteSettings();
 
   const heroHeadline = content?.hero_headline || 'Fresh, Fast, Made to Order';
@@ -67,8 +104,41 @@ export default async function HomePage() {
           </div>
         </section>
 
+        {/* TOP 3 THIS WEEK */}
+        {topThree.length > 0 && (
+          <section className="max-w-5xl mx-auto px-4 pt-8 pb-8 text-center">
+            <p className="text-2xl sm:text-3xl font-extrabold mb-1">
+              Top <span className="text-red-600">3</span> This Week
+            </p>
+            <p className="text-gray-500 text-sm mb-8">Our most loved dishes right now</p>
+            <div className="grid grid-cols-3 gap-3 sm:gap-6 mb-8">
+              {topThree.map(item => (
+                <Link key={item.id} href={`/menu?item=${item.id}`} className="text-left group">
+                  <div
+                    className="w-full aspect-square rounded-xl bg-cover bg-center bg-gray-100 group-hover:opacity-90 transition"
+                    style={{ backgroundImage: item.image_url ? `url('${item.image_url}')` : undefined }}
+                  />
+                  <p className="font-semibold text-sm mt-2 truncate">{item.name}</p>
+                  {item.description && (
+                    <p className="text-xs text-gray-500 truncate">{item.description}</p>
+                  )}
+                </Link>
+              ))}
+            </div>
+            <div className="bg-gray-50 rounded-2xl py-4 px-2 flex flex-wrap justify-center gap-x-6 gap-y-2 text-xs sm:text-sm font-semibold text-gray-700">
+              <span>Fresh Ingredients</span>
+              <span className="hidden sm:inline text-gray-300">|</span>
+              <span>Expertly Prepared</span>
+              <span className="hidden sm:inline text-gray-300">|</span>
+              <span>Secure Payment</span>
+              <span className="hidden sm:inline text-gray-300">|</span>
+              <span>Direct Ordering</span>
+            </div>
+          </section>
+        )}
+
         {/* MOST ORDERED */}
-        <section className="max-w-6xl mx-auto px-4 py-16">
+        <section className="max-w-6xl mx-auto px-4 pt-2 pb-16">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-3xl font-bold">Most Ordered</h2>
             <Link
