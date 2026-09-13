@@ -9,7 +9,7 @@ type Offer = {
   id: string; title: string; message: string | null; image_url: string | null;
   button_text: string; button_link: string; is_active: boolean;
   discount_type: 'percentage' | 'fixed' | 'none'; discount_value: number;
-  applies_to: 'delivery' | 'pickup' | 'both';
+  applies_to: 'delivery' | 'pickup' | 'both'; min_order_amount: number;
 };
 
 export default function AdminOffersPage() {
@@ -31,6 +31,7 @@ function OffersEditor() {
   const [discountType, setDiscountType] = useState<'percentage' | 'fixed' | 'none'>('none');
   const [discountValue, setDiscountValue] = useState('');
   const [appliesTo, setAppliesTo] = useState<'delivery' | 'pickup' | 'both'>('both');
+  const [minOrderAmount, setMinOrderAmount] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
@@ -54,6 +55,7 @@ function OffersEditor() {
       discount_type: discountType,
       discount_value: discountValue ? parseFloat(discountValue.replace(/[^0-9.]/g, '')) : 0,
       applies_to: appliesTo,
+      min_order_amount: minOrderAmount ? parseFloat(minOrderAmount.replace(/[^0-9.]/g, '')) : 0,
     });
 
     if (insertError) {
@@ -63,7 +65,7 @@ function OffersEditor() {
     }
 
     setTitle(''); setMessage(''); setButtonText('Order Now'); setButtonLink('/menu');
-    setDiscountType('none'); setDiscountValue(''); setAppliesTo('both');
+    setDiscountType('none'); setDiscountValue(''); setAppliesTo('both'); setMinOrderAmount('');
     setSaving(false);
     loadOffers();
   }
@@ -143,15 +145,23 @@ function OffersEditor() {
             />
           </div>
           {discountType !== 'none' && (
-            <select
-              value={appliesTo}
-              onChange={e => setAppliesTo(e.target.value as any)}
-              className="w-full border rounded-lg px-3 py-2 text-sm"
-            >
-              <option value="both">Applies to both pickup and delivery</option>
-              <option value="pickup">Applies to pickup/collection only</option>
-              <option value="delivery">Applies to delivery only</option>
-            </select>
+            <>
+              <select
+                value={appliesTo}
+                onChange={e => setAppliesTo(e.target.value as any)}
+                className="w-full border rounded-lg px-3 py-2 text-sm mb-2"
+              >
+                <option value="both">Applies to both pickup and delivery</option>
+                <option value="pickup">Applies to pickup/collection only</option>
+                <option value="delivery">Applies to delivery only</option>
+              </select>
+              <input
+                placeholder="Minimum order amount, e.g. 25 (leave blank for no minimum)"
+                value={minOrderAmount}
+                onChange={e => setMinOrderAmount(e.target.value)}
+                className="w-full border rounded-lg px-3 py-2 text-sm"
+              />
+            </>
           )}
         </div>
 
@@ -176,6 +186,7 @@ function OffersEditor() {
                   {offer.discount_type === 'percentage' ? `${offer.discount_value}% off` : `$${offer.discount_value.toFixed(2)} off`}
                   {' · '}
                   {offer.applies_to === 'both' ? 'Pickup & Delivery' : offer.applies_to === 'pickup' ? 'Pickup only' : 'Delivery only'}
+                  {offer.min_order_amount > 0 && ` · Min $${offer.min_order_amount.toFixed(2)}`}
                 </p>
               )}
             </div>
