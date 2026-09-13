@@ -27,7 +27,7 @@ async function getHomeData() {
     .select('menu_item_id, quantity, orders!inner(created_at)')
     .gte('orders.created_at', oneWeekAgo.toISOString());
 
-  let topThree: typeof featured = [];
+  let topThree: NonNullable<typeof featured> = [];
   if (recentItems && recentItems.length > 0) {
     const counts: Record<string, number> = {};
     for (const row of recentItems as any[]) {
@@ -48,7 +48,7 @@ async function getHomeData() {
       // Keep them ordered by popularity, not database order
       topThree = topIds
         .map(id => topItems?.find(i => i.id === id))
-        .filter(Boolean) as typeof featured;
+        .filter(Boolean) as NonNullable<typeof featured>;
     }
   }
   if (topThree.length === 0) topThree = (featured || []).slice(0, 3);
