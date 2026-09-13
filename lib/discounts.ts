@@ -6,18 +6,20 @@ export type ActiveDiscount = {
   discount_type: 'percentage' | 'fixed' | 'none';
   discount_value: number;
   applies_to: 'delivery' | 'pickup' | 'both';
+  min_order_amount: number;
 };
 
 // Finds the best active discount offer that applies to the given order type
-// (pickup or delivery), and returns the discount amount to subtract from subtotal.
-// If multiple discount offers are active, the largest discount wins — never stack them.
+// (pickup or delivery) and meets its minimum order amount, and returns the
+// discount to subtract from subtotal. If multiple qualify, the largest wins —
+// discounts never stack.
 export async function getBestDiscount(
   orderType: 'pickup' | 'delivery',
   subtotal: number
 ): Promise<{ discountAmount: number; appliedOffer: ActiveDiscount | null }> {
   const { data: offers } = await supabase
     .from('offers')
-    .select('id, title, discount_type, discount_value, applies_to')
+    .select('id, title, discount_type, discount_value, applies_to, min_order_amount')
     .eq('is_active', true)
     .neq('discount_type', 'none');
 
@@ -26,7 +28,9 @@ export async function getBestDiscount(
   }
 
   const eligible = (offers as ActiveDiscount[]).filter(
-    o => o.applies_to === 'both' || o.applies_to === orderType
+    o =>
+      (o.applies_to === 'both' || o.applies_to === orderType) &&
+      subtotal >= (o.min_order_amount || 0)
   );
 
   if (eligible.length === 0) {
