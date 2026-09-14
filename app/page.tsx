@@ -89,7 +89,7 @@ export default async function HomePage() {
 
         {/* HERO */}
         <section className="relative pt-6 pb-10 flex items-center justify-center text-center text-white">
-          <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: `url('${heroImage}')` }} />
+          <div className="absolute inset-0 bg-cover" style={{ backgroundImage: `url('${heroImage}')`, backgroundPosition: 'right center' }} />
           <div className="absolute inset-0 bg-black/50" />
           <div className="relative z-10 px-4 max-w-2xl flex flex-col items-center">
             <h1 className="text-4xl sm:text-5xl font-extrabold mb-4">{heroHeadline}</h1>
