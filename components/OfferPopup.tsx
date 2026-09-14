@@ -141,9 +141,17 @@ function DiscountOfferCard({
       </button>
 
       <div className="pt-8 pb-2 px-6">
-        <div className="w-14 h-14 rounded-full bg-brand/10 flex items-center justify-center mx-auto mb-4">
-          <span className="text-2xl" aria-hidden>🎁</span>
-        </div>
+        {offer.image_url ? (
+          <img
+            src={offer.image_url}
+            alt=""
+            className="w-16 h-16 object-contain mx-auto mb-4"
+          />
+        ) : (
+          <div className="w-14 h-14 rounded-full bg-brand/10 flex items-center justify-center mx-auto mb-4">
+            <span className="text-2xl" aria-hidden>🎁</span>
+          </div>
+        )}
         <h3 className="text-xl font-bold mb-2">Special Offer!</h3>
         <p className="text-gray-700 text-base leading-snug">
           {rangeText && <>{rangeText} </>}
