@@ -10,6 +10,7 @@ const LINKS = [
   { href: '/admin/menu', label: 'Menu' },
   { href: '/admin/homepage', label: 'Homepage' },
   { href: '/admin/gallery', label: 'Gallery' },
+  { href: '/admin/reviews', label: 'Reviews' },
   { href: '/admin/offers', label: 'Offers' },
 ];
 
