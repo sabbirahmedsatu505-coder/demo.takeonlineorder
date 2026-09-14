@@ -3,8 +3,8 @@
 @tailwind utilities;
 
 :root {
-  --brand: #db594b;       /* change to client's brand color */
-  --brand-dark: #b8402f;
+  --brand: #16a34a;       /* green */
+  --brand-dark: #15803d;
   --ink: #1a1a1a;
 }
 
