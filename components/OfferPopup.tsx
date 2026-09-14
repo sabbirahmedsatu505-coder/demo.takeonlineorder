@@ -25,11 +25,10 @@ export default function OfferPopup() {
 
   useEffect(() => {
     const dismissedSession = sessionStorage.getItem('dismissed-offers-session');
-    if (dismissedSession === '1') {
-      setDismissedAll(true);
-      return;
-    }
+    if (dismissedSession === '1') setDismissedAll(true);
 
+    // Fetch offers regardless of dismissed state — needed so "Tap for details"
+    // on the sticky bar can reopen the sequence later even after it was closed.
     supabase
       .from('offers')
       .select('id, title, message, image_url, button_text, button_link, discount_type, discount_value, applies_to, min_order_amount, max_order_amount')
@@ -38,6 +37,18 @@ export default function OfferPopup() {
       .then(({ data }) => {
         if (data && data.length > 0) setOffers(data);
       });
+  }, []);
+
+  // Reopen the full offer sequence when the sticky bottom bar is tapped,
+  // even if the popup was previously dismissed this session.
+  useEffect(() => {
+    function handleReopen() {
+      setIndex(0);
+      startedScroll.current = false;
+      setDismissedAll(false);
+    }
+    window.addEventListener('reopen-offers-popup', handleReopen);
+    return () => window.removeEventListener('reopen-offers-popup', handleReopen);
   }, []);
 
   useEffect(() => {
