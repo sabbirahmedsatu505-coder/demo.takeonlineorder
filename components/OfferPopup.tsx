@@ -152,12 +152,12 @@ function DiscountOfferCard({
             <span className="text-2xl" aria-hidden>🎁</span>
           </div>
         )}
-        <h3 className="text-xl font-bold mb-2">Special Offer!</h3>
-        <p className="text-gray-700 text-base leading-snug">
+        <h3 className="text-xl font-extrabold mb-2">Special Offer!</h3>
+        <p className="text-gray-900 text-base font-bold leading-snug">
           {rangeText && <>{rangeText} </>}
-          Get <span className="font-bold text-brand">{numberLabel} OFF</span>
+          Get <span className="text-brand">{numberLabel} OFF</span>
         </p>
-        {scopeLabel && <p className="text-gray-500 text-sm mt-1">({scopeLabel})</p>}
+        {scopeLabel && <p className="text-gray-700 text-sm font-bold mt-1">({scopeLabel})</p>}
         {offer.message && <p className="text-gray-500 text-sm mt-3">{offer.message}</p>}
       </div>
 
