@@ -125,7 +125,7 @@ export default async function HomePage() {
               {topThree.map(item => (
                 <Link key={item.id} href={`/menu?item=${item.id}`} className="text-left group">
                   <div
-                    className="w-full aspect-square rounded-xl bg-cover bg-center bg-gray-100 group-hover:opacity-90 transition"
+                    className="w-full aspect-square rounded-2xl shadow-sm bg-cover bg-center bg-gray-100 group-hover:opacity-90 group-hover:shadow-md transition"
                     style={{ backgroundImage: item.image_url ? `url('${item.image_url}')` : undefined }}
                   />
                   <p className="font-semibold text-sm mt-2 truncate">{item.name}</p>
