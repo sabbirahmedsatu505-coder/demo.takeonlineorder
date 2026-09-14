@@ -214,12 +214,13 @@ export default async function HomePage() {
             <table className="w-full text-sm text-gray-700">
               <tbody>
                 {hoursLines.map((line: string, i: number) => {
-                  const [day, ...rest] = line.split(':');
-                  const time = rest.join(':').trim();
+                  const match = line.match(/^(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)[:\s]*(.*)$/i);
+                  const day = match ? match[1] : line;
+                  const time = match ? match[2].trim() : '';
                   return (
                     <tr key={i} className="border-b last:border-0">
-                      <td className="py-1.5 pr-2 font-medium">{day.trim()}</td>
-                      <td className="py-1.5 text-right text-gray-500">{time || line}</td>
+                      <td className="py-1.5 pr-2 font-medium">{day}</td>
+                      <td className="py-1.5 text-right text-gray-500">{time}</td>
                     </tr>
                   );
                 })}
