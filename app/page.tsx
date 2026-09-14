@@ -12,7 +12,7 @@ async function getHomeData() {
   const { data: features } = await supabase.from('homepage_features').select('*').order('sort_order');
   const { data: featured } = await supabase
     .from('menu_items')
-    .select('id, name, description, base_price, image_url')
+    .select('id, name, description, base_price, image_url, is_popular')
     .eq('is_available', true)
     .order('sort_order')
     .limit(6);
@@ -42,7 +42,7 @@ async function getHomeData() {
     if (topIds.length > 0) {
       const { data: topItems } = await supabase
         .from('menu_items')
-        .select('id, name, description, base_price, image_url')
+        .select('id, name, description, base_price, image_url, is_popular')
         .in('id', topIds)
         .eq('is_available', true);
       // Keep them ordered by popularity, not database order
@@ -119,13 +119,16 @@ export default async function HomePage() {
                     style={{ backgroundImage: item.image_url ? `url('${item.image_url}')` : undefined }}
                   />
                   <p className="font-semibold text-sm mt-2 truncate">{item.name}</p>
+                  {item.is_popular && (
+                    <p className="text-xs text-orange-600 font-semibold">🔥 Popular</p>
+                  )}
                   {item.description && (
                     <p className="text-xs text-gray-500 truncate">{item.description}</p>
                   )}
                 </Link>
               ))}
             </div>
-            <div className="bg-gray-50 rounded-2xl py-4 px-2 flex flex-wrap justify-center gap-x-6 gap-y-2 text-xs sm:text-sm font-semibold text-gray-700">
+            <div className="bg-gray-50 rounded-2xl py-4 px-2 flex flex-wrap justify-center gap-x-6 gap-y-2 text-xs sm:text-sm font-bold text-gray-700">
               <span>Fresh Ingredients</span>
               <span className="hidden sm:inline text-gray-300">|</span>
               <span>Expertly Prepared</span>
