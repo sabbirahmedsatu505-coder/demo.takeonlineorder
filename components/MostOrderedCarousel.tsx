@@ -43,7 +43,7 @@ export default function MostOrderedCarousel({ items }: { items: Item[] }) {
     >
       {items.map(item => (
         <Link key={item.id} href={`/menu?item=${item.id}`} className="group shrink-0 w-44 snap-start">
-          <div className="relative w-44 h-44 rounded-2xl overflow-hidden bg-gray-100">
+          <div className="relative w-44 h-44 rounded-2xl shadow-sm overflow-hidden bg-gray-100 group-hover:shadow-md transition-shadow">
             <div
               className="w-full h-full bg-cover bg-center group-hover:scale-105 transition"
               style={{ backgroundImage: item.image_url ? `url('${item.image_url}')` : undefined }}
