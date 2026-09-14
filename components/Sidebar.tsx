@@ -122,8 +122,8 @@ export default function Sidebar({ siteName, logoUrl }: { siteName: string; logoU
       )}
 
       {/* DESKTOP: fixed left sidebar, only from md breakpoint up */}
-      <aside className="hidden md:flex md:flex-col w-52 shrink-0 border-r min-h-screen sticky top-0 px-6 py-8 bg-white">
-        <Link href="/" className="mb-4">
+      <aside className="hidden md:flex md:flex-col w-52 shrink-0 border-r min-h-screen sticky top-0 px-6 py-6 bg-white">
+        <Link href="/" className="mb-2">
           {logoUrl ? (
             <img src={logoUrl} alt={siteName} className="h-12" />
           ) : (
@@ -132,7 +132,7 @@ export default function Sidebar({ siteName, logoUrl }: { siteName: string; logoU
         </Link>
         <Link
           href="/menu"
-          className="bg-brand text-white text-center px-4 py-2 rounded-full text-sm font-semibold mb-8 hover:bg-brand-dark transition"
+          className="bg-brand text-white text-center px-4 py-2 rounded-full text-sm font-semibold mb-5 hover:bg-brand-dark transition"
         >
           Order Now
         </Link>
