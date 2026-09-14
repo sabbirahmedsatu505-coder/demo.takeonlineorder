@@ -54,7 +54,7 @@ export default function ReviewsCarousel({ reviews }: { reviews: Review[] }) {
         {reviews.map(review => (
           <div
             key={review.id}
-            className="shrink-0 w-72 snap-start bg-white border rounded-2xl p-5"
+            className="shrink-0 w-72 snap-start bg-white border rounded-2xl shadow-sm p-5"
           >
             <div className="flex items-center gap-3 mb-2">
               <div className="w-10 h-10 rounded-full bg-gray-200 text-gray-600 flex items-center justify-center font-semibold shrink-0">
