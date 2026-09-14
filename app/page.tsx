@@ -88,7 +88,7 @@ export default async function HomePage() {
         <OfferPopup />
 
         {/* HERO */}
-        <section className="relative min-h-[480px] py-20 flex items-center justify-center text-center text-white">
+        <section className="relative min-h-[420px] py-14 flex items-center justify-center text-center text-white">
           <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: `url('${heroImage}')` }} />
           <div className="absolute inset-0 bg-black/50" />
           <div className="relative z-10 px-4 max-w-2xl flex flex-col items-center">
@@ -116,12 +116,12 @@ export default async function HomePage() {
 
         {/* TOP 3 THIS WEEK */}
         {topThree.length > 0 && (
-          <section className="max-w-5xl mx-auto px-4 pt-8 pb-8 text-center">
+          <section className="max-w-5xl mx-auto px-4 pt-4 pb-6 text-center">
             <p className="text-2xl sm:text-3xl font-black mb-1">
               Top <span className="text-red-600">3</span> This Week
             </p>
-            <p className="text-gray-500 text-sm mb-8">Our most loved dishes right now</p>
-            <div className="grid grid-cols-3 gap-3 sm:gap-6 mb-8">
+            <p className="text-gray-500 text-sm mb-5">Our most loved dishes right now</p>
+            <div className="grid grid-cols-3 gap-3 sm:gap-6 mb-6">
               {topThree.map(item => (
                 <Link key={item.id} href={`/menu?item=${item.id}`} className="text-left group">
                   <div
@@ -149,7 +149,7 @@ export default async function HomePage() {
         )}
 
         {/* MOST ORDERED */}
-        <section className="max-w-6xl mx-auto px-4 pt-2 pb-16">
+        <section className="max-w-6xl mx-auto px-4 pt-2 pb-10">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-3xl font-black">Most Ordered</h2>
             <Link
@@ -191,7 +191,7 @@ export default async function HomePage() {
         )}
 
         {/* STORY */}
-        <section id="story" className="bg-gray-50 py-16">
+        <section id="story" className="bg-gray-50 py-10">
           <div className="max-w-3xl mx-auto px-4 text-center">
             <h2 className="text-3xl font-bold mb-4">{storyTitle}</h2>
             <p className="text-gray-700 leading-relaxed">{storyText}</p>
@@ -200,9 +200,9 @@ export default async function HomePage() {
 
         {/* CUSTOMER REVIEWS */}
         {reviews.length > 0 && (
-          <section className="max-w-5xl mx-auto px-4 pt-16 pb-8">
+          <section className="max-w-5xl mx-auto px-4 pt-10 pb-6">
             <p className="text-brand text-sm font-semibold mb-1">{reviewsSubtitle}</p>
-            <h2 className="text-3xl sm:text-4xl font-black mb-8">{reviewsHeading}</h2>
+            <h2 className="text-3xl sm:text-4xl font-black mb-5">{reviewsHeading}</h2>
             <ReviewsCarousel reviews={reviews} />
           </section>
         )}
