@@ -78,6 +78,7 @@ export default async function HomePage() {
   const hygieneRatingImageUrl = content?.hygiene_rating_image_url || null;
   const reviewsHeading = content?.reviews_heading || 'Customers are Awesome';
   const reviewsSubtitle = content?.reviews_subtitle || 'Customer reviews';
+  const emailText = content?.email_text || null;
 
   return (
     <div className="flex flex-col md:flex-row">
@@ -199,25 +200,64 @@ export default async function HomePage() {
 
         {/* CUSTOMER REVIEWS */}
         {reviews.length > 0 && (
-          <section className="max-w-5xl mx-auto px-4 py-16">
+          <section className="max-w-5xl mx-auto px-4 pt-16 pb-8">
             <p className="text-brand text-sm font-semibold mb-1">{reviewsSubtitle}</p>
             <h2 className="text-3xl sm:text-4xl font-black mb-8">{reviewsHeading}</h2>
             <ReviewsCarousel reviews={reviews} />
           </section>
         )}
 
-        {/* HOURS + LOCATION */}
-        <section id="hours" className="max-w-6xl mx-auto px-4 py-16 grid sm:grid-cols-2 gap-8">
+        {/* HOURS + LOCATION + CONTACT */}
+        <section id="hours" className="max-w-6xl mx-auto px-4 pt-8 pb-16 grid sm:grid-cols-3 gap-10">
           <div>
-            <h3 className="text-xl font-bold mb-3">Hours</h3>
-            <ul className="text-gray-700 space-y-1 text-sm">
-              {hoursLines.map((line: string, i: number) => <li key={i}>{line}</li>)}
-            </ul>
+            <h3 className="text-xl font-bold mb-4">Hours</h3>
+            <table className="w-full text-sm text-gray-700">
+              <tbody>
+                {hoursLines.map((line: string, i: number) => {
+                  const [day, ...rest] = line.split(':');
+                  const time = rest.join(':').trim();
+                  return (
+                    <tr key={i} className="border-b last:border-0">
+                      <td className="py-1.5 pr-2 font-medium">{day.trim()}</td>
+                      <td className="py-1.5 text-right text-gray-500">{time || line}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
+
           <div>
-            <h3 className="text-xl font-bold mb-3">Location</h3>
-            <p className="text-gray-700 text-sm">{locationText}</p>
-            <p className="text-gray-700 text-sm">{phoneText}</p>
+            <h3 className="text-xl font-bold mb-4">Location</h3>
+            <p className="text-gray-700 text-sm whitespace-pre-line mb-4">{locationText}</p>
+            <div className="w-full h-40 rounded-xl overflow-hidden border bg-gray-100">
+              <iframe
+                title="Restaurant location"
+                width="100%"
+                height="100%"
+                style={{ border: 0 }}
+                loading="lazy"
+                src={`https://www.google.com/maps?q=${encodeURIComponent(locationText)}&output=embed`}
+              />
+            </div>
+          </div>
+
+          <div>
+            <h3 className="text-xl font-bold mb-4">Contact Us</h3>
+            <a
+              href={`tel:${phoneText.replace(/[^0-9+]/g, '')}`}
+              className="block text-gray-700 text-sm mb-2 hover:text-brand transition"
+            >
+              {phoneText}
+            </a>
+            {emailText && (
+              <a
+                href={`mailto:${emailText}`}
+                className="block text-gray-700 text-sm hover:text-brand transition"
+              >
+                {emailText}
+              </a>
+            )}
           </div>
         </section>
 
