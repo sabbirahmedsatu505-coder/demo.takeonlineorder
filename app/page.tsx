@@ -3,6 +3,7 @@ import { supabase } from '@/lib/supabase';
 import { getSiteSettings } from '@/lib/site-settings';
 import OfferPopup from '@/components/OfferPopup';
 import MostOrderedCarousel from '@/components/MostOrderedCarousel';
+import ReviewsCarousel from '@/components/ReviewsCarousel';
 import Sidebar from '@/components/Sidebar';
 
 export const revalidate = 60;
@@ -53,11 +54,17 @@ async function getHomeData() {
   }
   if (topThree.length === 0) topThree = (featured || []).slice(0, 3);
 
-  return { content, features: features || [], featured: featured || [], topThree };
+  const { data: reviews } = await supabase
+    .from('reviews')
+    .select('id, customer_name, rating, review_text')
+    .eq('is_active', true)
+    .order('sort_order');
+
+  return { content, features: features || [], featured: featured || [], topThree, reviews: reviews || [] };
 }
 
 export default async function HomePage() {
-  const { content, features, featured, topThree } = await getHomeData();
+  const { content, features, featured, topThree, reviews } = await getHomeData();
   const { siteName, logoUrl } = await getSiteSettings();
 
   const heroHeadline = content?.hero_headline || 'Fresh, Fast, Made to Order';
@@ -69,6 +76,8 @@ export default async function HomePage() {
   const locationText = content?.location_text || '123 High Street, Your City';
   const phoneText = content?.phone_text || '+44 0000 000000';
   const hygieneRatingImageUrl = content?.hygiene_rating_image_url || null;
+  const reviewsHeading = content?.reviews_heading || 'Customers are Awesome';
+  const reviewsSubtitle = content?.reviews_subtitle || 'Customer reviews';
 
   return (
     <div className="flex flex-col md:flex-row">
@@ -187,6 +196,15 @@ export default async function HomePage() {
             <p className="text-gray-700 leading-relaxed">{storyText}</p>
           </div>
         </section>
+
+        {/* CUSTOMER REVIEWS */}
+        {reviews.length > 0 && (
+          <section className="max-w-5xl mx-auto px-4 py-16">
+            <p className="text-brand text-sm font-semibold mb-1">{reviewsSubtitle}</p>
+            <h2 className="text-3xl sm:text-4xl font-black mb-8">{reviewsHeading}</h2>
+            <ReviewsCarousel reviews={reviews} />
+          </section>
+        )}
 
         {/* HOURS + LOCATION */}
         <section id="hours" className="max-w-6xl mx-auto px-4 py-16 grid sm:grid-cols-2 gap-8">
