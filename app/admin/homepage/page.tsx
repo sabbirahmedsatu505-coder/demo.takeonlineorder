@@ -9,7 +9,7 @@ type Content = {
   site_name: string; logo_url: string | null;
   hero_image_url: string | null; hero_headline: string; hero_subtext: string;
   story_title: string; story_text: string; hours_text: string;
-  location_text: string; phone_text: string;
+  location_text: string; phone_text: string; email_text: string;
   hygiene_rating_image_url: string | null;
 };
 type Feature = { id: string; title: string; description: string | null; image_url: string | null; sort_order: number };
@@ -227,12 +227,20 @@ function HomepageEditor() {
         />
 
         <h2 className="font-semibold pt-2">Hours &amp; Location</h2>
+        <p className="text-xs text-gray-400">
+          One day per line, format "Day: Time" — e.g. "Monday: 4–10:30 PM". This also
+          renders as a table on the homepage.
+        </p>
         <textarea
-          placeholder={'One line per row, e.g.\nMon–Thu: 11am – 9pm\nFri–Sat: 11am – 10pm'}
+          placeholder={'Monday: 4–10:30 PM\nTuesday: 4–10:30 PM\nWednesday: 4–10:30 PM\nThursday: 4–10:30 PM\nFriday: 4–11 PM\nSaturday: 4–11 PM\nSunday: 4–10 PM'}
           value={content.hours_text}
           onChange={e => setContent({ ...content, hours_text: e.target.value })}
-          className="w-full border rounded-lg px-3 py-2 text-sm" rows={3}
+          className="w-full border rounded-lg px-3 py-2 text-sm" rows={7}
         />
+        <p className="text-xs text-gray-400">
+          Full address — this is also used to show the map on the homepage, so use a
+          real, complete address (e.g. "The Causeway, Halstead, CO9 1ET").
+        </p>
         <input
           placeholder="Address" value={content.location_text}
           onChange={e => setContent({ ...content, location_text: e.target.value })}
@@ -241,6 +249,11 @@ function HomepageEditor() {
         <input
           placeholder="Phone number" value={content.phone_text}
           onChange={e => setContent({ ...content, phone_text: e.target.value })}
+          className="w-full border rounded-lg px-3 py-2 text-sm"
+        />
+        <input
+          placeholder="Email address (optional)" value={content.email_text || ''}
+          onChange={e => setContent({ ...content, email_text: e.target.value })}
           className="w-full border rounded-lg px-3 py-2 text-sm"
         />
 
