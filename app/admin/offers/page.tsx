@@ -25,6 +25,8 @@ export default function AdminOffersPage() {
 function OffersEditor() {
   const [offers, setOffers] = useState<Offer[]>([]);
   const [title, setTitle] = useState('');
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [message, setMessage] = useState('');
   const [buttonText, setButtonText] = useState('Order Now');
   const [buttonLink, setButtonLink] = useState('/menu');
@@ -50,8 +52,25 @@ function OffersEditor() {
     setSaving(true);
     setError('');
 
+    let imageUrl: string | null = null;
+    if (photoFile) {
+      const fileExt = photoFile.name.split('.').pop();
+      const fileName = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${fileExt}`;
+      const { error: uploadError } = await supabase.storage
+        .from('menu-images')
+        .upload(fileName, photoFile, { cacheControl: '3600', upsert: false });
+      if (uploadError) {
+        setError(`Photo upload failed: ${uploadError.message}. Offer was not saved.`);
+        setSaving(false);
+        return;
+      }
+      const { data } = supabase.storage.from('menu-images').getPublicUrl(fileName);
+      imageUrl = data.publicUrl;
+    }
+
     const { error: insertError } = await supabase.from('offers').insert({
       title, message, button_text: buttonText, button_link: buttonLink,
+      image_url: imageUrl,
       is_active: false,
       discount_type: discountType,
       discount_value: discountValue ? parseFloat(discountValue.replace(/[^0-9.]/g, '')) : 0,
@@ -68,6 +87,7 @@ function OffersEditor() {
 
     setTitle(''); setMessage(''); setButtonText('Order Now'); setButtonLink('/menu');
     setDiscountType('none'); setDiscountValue(''); setAppliesTo('both'); setMinOrderAmount(''); setMaxOrderAmount('');
+    setPhotoFile(null); setPhotoPreview(null);
     setSaving(false);
     loadOffers();
   }
@@ -113,6 +133,25 @@ function OffersEditor() {
           className="w-full border rounded-lg px-3 py-2 text-sm"
           rows={2}
         />
+        <div>
+          <label className="block text-sm font-medium mb-1">
+            Popup icon/image (optional — replaces the default 🎁 icon)
+          </label>
+          <input
+            type="file" accept="image/*"
+            onChange={e => {
+              const f = e.target.files?.[0];
+              if (f) { setPhotoFile(f); setPhotoPreview(URL.createObjectURL(f)); }
+            }}
+            className="w-full text-sm"
+          />
+          {photoPreview && (
+            <div
+              className="mt-2 w-16 h-16 rounded-full bg-cover bg-center border"
+              style={{ backgroundImage: `url('${photoPreview}')` }}
+            />
+          )}
+        </div>
         <div className="grid grid-cols-2 gap-3">
           <input
             placeholder="Button text" value={buttonText}
