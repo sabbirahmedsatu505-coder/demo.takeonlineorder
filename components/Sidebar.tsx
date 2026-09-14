@@ -151,9 +151,9 @@ export default function Sidebar({ siteName, logoUrl }: { siteName: string; logoU
 
       {/* STICKY PROMO BAR — fixed at the BOTTOM, cycles through all active discount offers */}
       {showBar && (
-        <Link
-          href="/menu"
-          className="fixed bottom-0 left-0 right-0 z-50 bg-brand text-white flex items-center justify-between gap-3 px-4 py-2.5 hover:bg-brand-dark transition"
+        <div
+          onClick={() => window.dispatchEvent(new CustomEvent('reopen-offers-popup'))}
+          className="fixed bottom-0 left-0 right-0 z-50 bg-brand text-white flex items-center justify-between gap-3 px-4 py-2.5 hover:bg-brand-dark transition cursor-pointer"
         >
           <span className="flex items-center gap-2 min-w-0">
             <span className="text-lg shrink-0" aria-hidden>🎁</span>
@@ -174,7 +174,7 @@ export default function Sidebar({ siteName, logoUrl }: { siteName: string; logoU
               &times;
             </button>
           </span>
-        </Link>
+        </div>
       )}
       {/* Spacer so bottom content (e.g. cart bar on menu page) isn't hidden under the promo bar */}
       {showBar && <div className="h-12" />}
