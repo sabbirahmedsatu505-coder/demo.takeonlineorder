@@ -1,8 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { supabase } from '@/lib/supabase';
 
 const NAV_LINKS = [
   { href: '/', label: 'Home' },
@@ -13,9 +14,60 @@ const NAV_LINKS = [
   { href: '/contact-us', label: 'Contact Us' },
 ];
 
+type OfferBarData = { id: string; title: string; discount_type: string; discount_value: number; applies_to: string };
+
+const APPLIES_LABEL: Record<string, string> = {
+  pickup: 'On Collection',
+  delivery: 'On Delivery',
+  both: '',
+};
+
 export default function Sidebar({ siteName, logoUrl }: { siteName: string; logoUrl: string | null }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
+  const [offerBars, setOfferBars] = useState<OfferBarData[]>([]);
+  const [barIndex, setBarIndex] = useState(0);
+  const [barDismissed, setBarDismissed] = useState(false);
+
+  useEffect(() => {
+    if (sessionStorage.getItem('dismissed-offer-bar') === '1') {
+      setBarDismissed(true);
+      return;
+    }
+
+    supabase
+      .from('offers')
+      .select('id, title, discount_type, discount_value, applies_to')
+      .eq('is_active', true)
+      .neq('discount_type', 'none')
+      .order('discount_value', { ascending: false })
+      .then(({ data }) => {
+        if (data && data.length > 0) setOfferBars(data);
+      });
+  }, []);
+
+  // Rotate through all active discount offers, one at a time
+  useEffect(() => {
+    if (offerBars.length <= 1) return;
+    const interval = setInterval(() => {
+      setBarIndex(i => (i + 1) % offerBars.length);
+    }, 3500);
+    return () => clearInterval(interval);
+  }, [offerBars.length]);
+
+  function dismissOfferBar() {
+    sessionStorage.setItem('dismissed-offer-bar', '1');
+    setBarDismissed(true);
+  }
+
+  const currentBar = offerBars[barIndex];
+  const showBar = currentBar && !barDismissed;
+
+  const offerLabel = currentBar
+    ? currentBar.discount_type === 'percentage'
+      ? `${currentBar.discount_value}%`
+      : `$${currentBar.discount_value.toFixed(2)}`
+    : null;
 
   return (
     <>
@@ -95,6 +147,36 @@ export default function Sidebar({ siteName, logoUrl }: { siteName: string; logoU
           ))}
         </nav>
       </aside>
+
+      {/* STICKY PROMO BAR — fixed at the BOTTOM, cycles through all active discount offers */}
+      {showBar && (
+        <Link
+          href="/menu"
+          className="fixed bottom-0 left-0 right-0 z-50 bg-brand text-white flex items-center justify-between gap-3 px-4 py-2.5 hover:bg-brand-dark transition"
+        >
+          <span className="flex items-center gap-2 min-w-0">
+            <span className="text-lg shrink-0" aria-hidden>🎁</span>
+            <span className="min-w-0">
+              <span className="block text-xs font-bold leading-tight">Special Offer!</span>
+              <span className="block text-xs leading-tight truncate">
+                Get {offerLabel} OFF {APPLIES_LABEL[currentBar.applies_to]} — {currentBar.title}
+              </span>
+            </span>
+          </span>
+          <span className="flex items-center gap-2 shrink-0">
+            <span className="text-xs font-semibold underline whitespace-nowrap">Tap for details</span>
+            <button
+              onClick={(e) => { e.preventDefault(); e.stopPropagation(); dismissOfferBar(); }}
+              className="text-white/80 hover:text-white text-lg leading-none"
+              aria-label="Dismiss"
+            >
+              &times;
+            </button>
+          </span>
+        </Link>
+      )}
+      {/* Spacer so bottom content (e.g. cart bar on menu page) isn't hidden under the promo bar */}
+      {showBar && <div className="h-12" />}
     </>
   );
 }
