@@ -68,6 +68,23 @@ export default function OfferPopup() {
     };
   }, [offers, dismissedAll]);
 
+  // Auto-advance through all offers on its own while the popup is open —
+  // stops once it reaches the last one, waiting there for the customer to
+  // close it or tap the button.
+  useEffect(() => {
+    if (offers.length <= 1 || dismissedAll) return;
+
+    const interval = setInterval(() => {
+      setIndex(i => {
+        if (i < offers.length - 1) return i + 1;
+        clearInterval(interval);
+        return i;
+      });
+    }, 2200);
+
+    return () => clearInterval(interval);
+  }, [offers, dismissedAll]);
+
   function dismissEverything() {
     sessionStorage.setItem('dismissed-offers-session', '1');
     setDismissedAll(true);
