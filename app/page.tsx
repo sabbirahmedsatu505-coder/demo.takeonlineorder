@@ -107,7 +107,7 @@ export default async function HomePage() {
         {/* TOP 3 THIS WEEK */}
         {topThree.length > 0 && (
           <section className="max-w-5xl mx-auto px-4 pt-8 pb-8 text-center">
-            <p className="text-2xl sm:text-3xl font-extrabold mb-1">
+            <p className="text-2xl sm:text-3xl font-black mb-1">
               Top <span className="text-red-600">3</span> This Week
             </p>
             <p className="text-gray-500 text-sm mb-8">Our most loved dishes right now</p>
@@ -128,13 +128,11 @@ export default async function HomePage() {
                 </Link>
               ))}
             </div>
-            <div className="bg-gray-50 rounded-2xl py-4 px-2 flex flex-wrap justify-center gap-x-6 gap-y-2 text-xs sm:text-sm font-bold text-gray-700">
+            <div className="bg-gray-50 rounded-2xl py-4 px-2 flex flex-nowrap justify-center gap-x-3 sm:gap-x-6 text-[11px] sm:text-sm font-black text-gray-700">
               <span>Fresh Ingredients</span>
-              <span className="hidden sm:inline text-gray-300">|</span>
-              <span>Expertly Prepared</span>
-              <span className="hidden sm:inline text-gray-300">|</span>
+              <span className="text-gray-300">|</span>
               <span>Secure Payment</span>
-              <span className="hidden sm:inline text-gray-300">|</span>
+              <span className="text-gray-300">|</span>
               <span>Direct Ordering</span>
             </div>
           </section>
@@ -143,7 +141,7 @@ export default async function HomePage() {
         {/* MOST ORDERED */}
         <section className="max-w-6xl mx-auto px-4 pt-2 pb-16">
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-3xl font-bold">Most Ordered</h2>
+            <h2 className="text-3xl font-black">Most Ordered</h2>
             <Link
               href="/menu"
               className="flex items-center gap-1 border rounded-full px-4 py-2 text-sm font-semibold hover:bg-gray-50 transition"
