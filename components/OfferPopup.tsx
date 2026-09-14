@@ -8,13 +8,13 @@ type Offer = {
   id: string; title: string; message: string | null;
   image_url: string | null; button_text: string; button_link: string;
   discount_type: string; discount_value: number; applies_to: string;
-  min_order_amount: number;
+  min_order_amount: number; max_order_amount: number | null;
 };
 
 const SCOPE_LABEL: Record<string, string> = {
-  pickup: 'COLLECTION ORDER',
-  delivery: 'DELIVERY ORDER',
-  both: 'ORDER',
+  pickup: 'On Collection',
+  delivery: 'On Delivery',
+  both: 'On Collection & Delivery',
 };
 
 export default function OfferPopup() {
@@ -32,7 +32,7 @@ export default function OfferPopup() {
 
     supabase
       .from('offers')
-      .select('id, title, message, image_url, button_text, button_link, discount_type, discount_value, applies_to, min_order_amount')
+      .select('id, title, message, image_url, button_text, button_link, discount_type, discount_value, applies_to, min_order_amount, max_order_amount')
       .eq('is_active', true)
       .order('created_at', { ascending: true })
       .then(({ data }) => {
@@ -76,28 +76,20 @@ export default function OfferPopup() {
   const hasDiscount = offer.discount_type === 'percentage' || offer.discount_type === 'fixed';
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center px-4">
-      <div className="relative max-w-md w-full rounded-2xl overflow-hidden shadow-2xl">
-        <button
-          onClick={handleClose}
-          className="absolute top-3 right-3 text-white bg-black/40 rounded-full w-8 h-8 flex items-center justify-center z-20 hover:bg-black/60 transition"
-          aria-label="Close"
-        >
-          &times;
-        </button>
-
+    <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center px-4">
+      <div className="relative max-w-sm w-full">
         {hasDiscount ? (
-          <DiscountOfferCard offer={offer} onAction={handleClose} />
+          <DiscountOfferCard offer={offer} onAction={handleClose} onClose={handleClose} />
         ) : (
-          <SimpleOfferCard offer={offer} onAction={handleClose} />
+          <SimpleOfferCard offer={offer} onAction={handleClose} onClose={handleClose} />
         )}
 
         {offers.length > 1 && (
-          <div className="absolute bottom-3 left-0 right-0 flex justify-center gap-1.5">
+          <div className="flex justify-center gap-1.5 mt-3">
             {offers.map((_, i) => (
               <span
                 key={i}
-                className={`w-1.5 h-1.5 rounded-full ${i === index ? 'bg-white' : 'bg-white/40'}`}
+                className={`w-1.5 h-1.5 rounded-full ${i === index ? 'bg-white' : 'bg-white/50'}`}
               />
             ))}
           </div>
@@ -107,59 +99,75 @@ export default function OfferPopup() {
   );
 }
 
-// The bold "GET 20% OFF" style card — used automatically whenever an offer has a real discount.
-function DiscountOfferCard({ offer, onAction }: { offer: Offer; onAction: () => void }) {
+// Clean white card style — used automatically whenever an offer has a real discount.
+// Builds the sentence dynamically from whatever the admin set: minimum spend,
+// discount amount, and which order type it applies to.
+function DiscountOfferCard({
+  offer, onAction, onClose,
+}: { offer: Offer; onAction: () => void; onClose: () => void }) {
   const numberLabel = offer.discount_type === 'percentage'
     ? `${offer.discount_value}%`
     : `$${offer.discount_value.toFixed(2)}`;
 
-  const scopeLabel = SCOPE_LABEL[offer.applies_to] || 'ORDER';
+  const scopeLabel = SCOPE_LABEL[offer.applies_to] || '';
+
+  const hasMin = offer.min_order_amount > 0;
+  const hasMax = offer.max_order_amount != null;
+
+  let rangeText = '';
+  if (hasMin && hasMax) rangeText = `Order $${offer.min_order_amount.toFixed(2)}–$${offer.max_order_amount!.toFixed(2)} &`;
+  else if (hasMin) rangeText = `Order Over $${offer.min_order_amount.toFixed(2)} &`;
+  else if (hasMax) rangeText = `Order Under $${offer.max_order_amount!.toFixed(2)} &`;
 
   return (
-    <div className="relative min-h-[300px] flex items-end text-white">
-      <div
-        className="absolute inset-0 bg-cover bg-center"
-        style={{ backgroundImage: offer.image_url ? `url('${offer.image_url}')` : 'linear-gradient(135deg, #2b2b2b, #111)' }}
-      />
-      <div className="absolute inset-0 bg-gradient-to-r from-black/90 via-black/60 to-black/10" />
+    <div className="bg-white rounded-2xl shadow-2xl overflow-hidden text-center relative">
+      <button
+        onClick={onClose}
+        className="absolute top-3 right-3 text-gray-400 hover:text-gray-600 text-xl leading-none"
+        aria-label="Close"
+      >
+        &times;
+      </button>
 
-      <div className="relative z-10 p-6 pb-10 max-w-[75%]">
-        <p className="text-2xl font-extrabold italic tracking-wide" style={{ color: '#f5b942' }}>
-          GET
+      <div className="pt-8 pb-2 px-6">
+        <div className="w-14 h-14 rounded-full bg-brand/10 flex items-center justify-center mx-auto mb-4">
+          <span className="text-2xl" aria-hidden>🎁</span>
+        </div>
+        <h3 className="text-xl font-bold mb-2">Special Offer!</h3>
+        <p className="text-gray-700 text-base leading-snug">
+          {rangeText && <>{rangeText} </>}
+          Get <span className="font-bold text-brand">{numberLabel} OFF</span>
         </p>
-        <p
-          className="text-5xl font-extrabold italic leading-none mb-1"
-          style={{ color: '#f5b942', textShadow: '2px 2px 0 rgba(0,0,0,0.4)' }}
-        >
-          {numberLabel} OFF
-        </p>
-        <p className="text-lg font-bold mb-3">
-          ON YOUR <span style={{ color: '#f5b942' }}>{scopeLabel}</span>
-        </p>
-        {offer.message && (
-          <p className="text-sm text-gray-200 mb-5">{offer.message}</p>
-        )}
-        {offer.min_order_amount > 0 && (
-          <p className="text-xs text-gray-300 mb-4">
-            Minimum order ${offer.min_order_amount.toFixed(2)}
-          </p>
-        )}
+        {scopeLabel && <p className="text-gray-500 text-sm mt-1">({scopeLabel})</p>}
+        {offer.message && <p className="text-gray-500 text-sm mt-3">{offer.message}</p>}
+      </div>
+
+      <div className="p-6 pt-4">
         <Link
           href={offer.button_link}
           onClick={onAction}
-          className="inline-flex items-center gap-2 bg-gradient-to-r from-red-600 to-red-500 text-white px-6 py-2.5 rounded-full font-bold hover:from-red-700 hover:to-red-600 transition"
+          className="block bg-brand text-white py-3 rounded-full font-semibold hover:bg-brand-dark transition"
         >
-          {offer.button_text} <span aria-hidden>›</span>
+          {offer.button_text}
         </Link>
       </div>
     </div>
   );
 }
 
-// Plain informational popup (no discount) — same as before, for things like "Sign up for offers."
-function SimpleOfferCard({ offer, onAction }: { offer: Offer; onAction: () => void }) {
+// Plain informational popup (no discount) — for things like "Sign up for offers."
+function SimpleOfferCard({
+  offer, onAction, onClose,
+}: { offer: Offer; onAction: () => void; onClose: () => void }) {
   return (
-    <div className="bg-white">
+    <div className="bg-white rounded-2xl shadow-2xl overflow-hidden relative">
+      <button
+        onClick={onClose}
+        className="absolute top-3 right-3 text-white bg-black/30 rounded-full w-7 h-7 flex items-center justify-center z-10"
+        aria-label="Close"
+      >
+        &times;
+      </button>
       {offer.image_url && (
         <div className="h-40 bg-cover bg-center" style={{ backgroundImage: `url('${offer.image_url}')` }} />
       )}
