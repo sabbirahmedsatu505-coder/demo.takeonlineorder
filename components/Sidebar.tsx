@@ -61,7 +61,8 @@ export default function Sidebar({ siteName, logoUrl }: { siteName: string; logoU
   }
 
   const currentBar = offerBars[barIndex];
-  const showBar = currentBar && !barDismissed;
+  const isMenuPage = pathname === '/menu';
+  const showBar = currentBar && !barDismissed && !isMenuPage;
 
   const offerLabel = currentBar
     ? currentBar.discount_type === 'percentage'
