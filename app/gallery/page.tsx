@@ -16,14 +16,14 @@ export default async function GalleryPage() {
         {(!images || images.length === 0) && (
           <p className="text-gray-400 text-sm">No photos yet.</p>
         )}
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {images?.map(img => (
             <div key={img.id}>
               <div
-                className="w-full aspect-square rounded-xl bg-cover bg-center bg-gray-100"
+                className="w-full aspect-[4/3] rounded-2xl shadow-sm bg-cover bg-center bg-gray-100"
                 style={{ backgroundImage: `url('${img.image_url}')` }}
               />
-              {img.caption && <p className="text-sm text-gray-600 mt-1">{img.caption}</p>}
+              {img.caption && <p className="text-sm text-gray-600 mt-2">{img.caption}</p>}
             </div>
           ))}
         </div>
