@@ -79,6 +79,8 @@ export default async function HomePage() {
   const reviewsHeading = content?.reviews_heading || 'Customers are Awesome';
   const reviewsSubtitle = content?.reviews_subtitle || 'Customer reviews';
   const emailText = content?.email_text || null;
+  const facebookUrl = content?.facebook_url || null;
+  const instagramUrl = content?.instagram_url || null;
 
   return (
     <div className="flex flex-col md:flex-row">
@@ -254,11 +256,58 @@ export default async function HomePage() {
             {emailText && (
               <a
                 href={`mailto:${emailText}`}
-                className="block text-gray-700 text-sm hover:text-brand transition"
+                className="block text-gray-700 text-sm hover:text-brand transition mb-4"
               >
                 {emailText}
               </a>
             )}
+
+            {(facebookUrl || instagramUrl) && (
+              <div className="flex gap-3 mb-6">
+                {facebookUrl && (
+                  <a
+                    href={facebookUrl} target="_blank" rel="noopener noreferrer"
+                    aria-label="Facebook"
+                    className="w-9 h-9 rounded-full bg-gray-100 hover:bg-brand hover:text-white flex items-center justify-center transition"
+                  >
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M22 12a10 10 0 1 0-11.6 9.9v-7H7.9V12h2.5V9.8c0-2.5 1.5-3.9 3.8-3.9 1.1 0 2.2.2 2.2.2v2.5h-1.3c-1.2 0-1.6.8-1.6 1.6V12h2.8l-.4 2.9h-2.4v7A10 10 0 0 0 22 12z"/>
+                    </svg>
+                  </a>
+                )}
+                {instagramUrl && (
+                  <a
+                    href={instagramUrl} target="_blank" rel="noopener noreferrer"
+                    aria-label="Instagram"
+                    className="w-9 h-9 rounded-full bg-gray-100 hover:bg-brand hover:text-white flex items-center justify-center transition"
+                  >
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M12 2c2.7 0 3.1 0 4.1.06 1.1.05 1.8.2 2.4.45.7.27 1.2.6 1.7 1.1.5.5.86 1 1.1 1.7.24.6.4 1.3.45 2.4.05 1 .06 1.4.06 4.1s0 3.1-.06 4.1c-.05 1.1-.2 1.8-.45 2.4-.27.7-.6 1.2-1.1 1.7-.5.5-1 .86-1.7 1.1-.6.24-1.3.4-2.4.45-1 .05-1.4.06-4.1.06s-3.1 0-4.1-.06c-1.1-.05-1.8-.2-2.4-.45-.7-.27-1.2-.6-1.7-1.1-.5-.5-.86-1-1.1-1.7-.24-.6-.4-1.3-.45-2.4C2 15.1 2 14.7 2 12s0-3.1.06-4.1c.05-1.1.2-1.8.45-2.4.27-.7.6-1.2 1.1-1.7.5-.5 1-.86 1.7-1.1.6-.24 1.3-.4 2.4-.45C8.9 2 9.3 2 12 2zm0 1.8c-2.6 0-3 0-4 .06-.9.04-1.4.18-1.7.3-.44.17-.75.37-1.08.7-.33.33-.53.64-.7 1.08-.12.3-.26.8-.3 1.7C4.2 8.6 4.2 9 4.2 12s0 3.4.06 4.36c.04.9.18 1.4.3 1.7.17.44.37.75.7 1.08.33.33.64.53 1.08.7.3.12.8.26 1.7.3 1 .06 1.4.06 4 .06s3-.0 4-.06c.9-.04 1.4-.18 1.7-.3.44-.17.75-.37 1.08-.7.33-.33.53-.64.7-1.08.12-.3.26-.8.3-1.7.06-1 .06-1.4.06-4.36s0-3.4-.06-4.36c-.04-.9-.18-1.4-.3-1.7a2.9 2.9 0 0 0-.7-1.08 2.9 2.9 0 0 0-1.08-.7c-.3-.12-.8-.26-1.7-.3-1-.06-1.4-.06-4-.06zM12 6.9a5.1 5.1 0 1 1 0 10.2 5.1 5.1 0 0 1 0-10.2zm0 1.8a3.3 3.3 0 1 0 0 6.6 3.3 3.3 0 0 0 0-6.6zm5.3-2a1.2 1.2 0 1 1 0 2.4 1.2 1.2 0 0 1 0-2.4z"/>
+                    </svg>
+                  </a>
+                )}
+              </div>
+            )}
+
+            {/* SECURE PAYMENTS TRUST BADGE */}
+            <div className="border rounded-xl p-3">
+              <div className="flex items-center gap-2 mb-2">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" className="text-gray-700">
+                  <path d="M12 1a5 5 0 0 0-5 5v3H6a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-9a2 2 0 0 0-2-2h-1V6a5 5 0 0 0-5-5zm-3 8V6a3 3 0 0 1 6 0v3H9zm3 4a1.5 1.5 0 0 1 1 2.6V17a1 1 0 1 1-2 0v-1.4A1.5 1.5 0 0 1 12 13z"/>
+                </svg>
+                <span className="text-xs font-bold text-gray-700">Secure Payments</span>
+              </div>
+              <div className="bg-black rounded-md px-3 py-1.5 inline-block mb-2">
+                <span className="text-white text-xs">Powered by <span className="font-bold">stripe</span></span>
+              </div>
+              <div className="flex gap-1.5 flex-wrap">
+                {['Mastercard', 'Visa', 'Discover', 'Amex'].map(card => (
+                  <span key={card} className="text-[10px] font-semibold text-gray-600 bg-gray-100 rounded px-2 py-1">
+                    {card}
+                  </span>
+                ))}
+              </div>
+            </div>
           </div>
         </section>
 
