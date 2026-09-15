@@ -10,7 +10,7 @@ type Content = {
   hero_image_url: string | null; hero_headline: string; hero_subtext: string;
   story_title: string; story_text: string; hours_text: string;
   location_text: string; phone_text: string; email_text: string;
-  facebook_url: string; instagram_url: string;
+  facebook_url: string; instagram_url: string; trust_badge_image_url: string | null;
   hygiene_rating_image_url: string | null;
 };
 type Feature = { id: string; title: string; description: string | null; image_url: string | null; sort_order: number };
@@ -34,6 +34,8 @@ function HomepageEditor() {
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [hygieneFile, setHygieneFile] = useState<File | null>(null);
   const [hygienePreview, setHygienePreview] = useState<string | null>(null);
+  const [trustBadgeFile, setTrustBadgeFile] = useState<File | null>(null);
+  const [trustBadgePreview, setTrustBadgePreview] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [savedMsg, setSavedMsg] = useState('');
@@ -73,9 +75,12 @@ function HomepageEditor() {
       let hygieneUrl = content.hygiene_rating_image_url;
       if (hygieneFile) hygieneUrl = await uploadPhoto(hygieneFile);
 
+      let trustBadgeUrl = content.trust_badge_image_url;
+      if (trustBadgeFile) trustBadgeUrl = await uploadPhoto(trustBadgeFile);
+
       const { error: updateError } = await supabase
         .from('homepage_content')
-        .update({ ...content, hero_image_url: heroUrl, logo_url: logoUrl, hygiene_rating_image_url: hygieneUrl })
+        .update({ ...content, hero_image_url: heroUrl, logo_url: logoUrl, hygiene_rating_image_url: hygieneUrl, trust_badge_image_url: trustBadgeUrl })
         .eq('id', 1);
 
       if (updateError) throw new Error(updateError.message);
@@ -85,6 +90,8 @@ function HomepageEditor() {
       setLogoPreview(null);
       setHygieneFile(null);
       setHygienePreview(null);
+      setTrustBadgeFile(null);
+      setTrustBadgePreview(null);
       setSavedMsg('Saved!');
       setTimeout(() => setSavedMsg(''), 2000);
       loadAll();
@@ -267,6 +274,27 @@ function HomepageEditor() {
           onChange={e => setContent({ ...content, instagram_url: e.target.value })}
           className="w-full border rounded-lg px-3 py-2 text-sm"
         />
+
+        <div>
+          <label className="block text-sm font-medium mb-1">
+            Secure Payments badge image (optional — replaces the built-in one)
+          </label>
+          <input
+            type="file" accept="image/*"
+            onChange={e => {
+              const f = e.target.files?.[0];
+              if (f) { setTrustBadgeFile(f); setTrustBadgePreview(URL.createObjectURL(f)); }
+            }}
+            className="w-full text-sm"
+          />
+          {(trustBadgePreview || content.trust_badge_image_url) && (
+            <img
+              src={trustBadgePreview || content.trust_badge_image_url || ''}
+              alt="Trust badge preview"
+              className="mt-2 max-w-[220px]"
+            />
+          )}
+        </div>
 
         {error && <p className="text-red-600 text-sm">{error}</p>}
         {savedMsg && <p className="text-green-600 text-sm font-semibold">{savedMsg}</p>}
