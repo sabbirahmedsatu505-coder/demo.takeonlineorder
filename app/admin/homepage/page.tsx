@@ -10,6 +10,7 @@ type Content = {
   hero_image_url: string | null; hero_headline: string; hero_subtext: string;
   story_title: string; story_text: string; hours_text: string;
   location_text: string; phone_text: string; email_text: string;
+  facebook_url: string; instagram_url: string;
   hygiene_rating_image_url: string | null;
 };
 type Feature = { id: string; title: string; description: string | null; image_url: string | null; sort_order: number };
@@ -254,6 +255,16 @@ function HomepageEditor() {
         <input
           placeholder="Email address (optional)" value={content.email_text || ''}
           onChange={e => setContent({ ...content, email_text: e.target.value })}
+          className="w-full border rounded-lg px-3 py-2 text-sm"
+        />
+        <input
+          placeholder="Facebook page URL (optional)" value={content.facebook_url || ''}
+          onChange={e => setContent({ ...content, facebook_url: e.target.value })}
+          className="w-full border rounded-lg px-3 py-2 text-sm"
+        />
+        <input
+          placeholder="Instagram page URL (optional)" value={content.instagram_url || ''}
+          onChange={e => setContent({ ...content, instagram_url: e.target.value })}
           className="w-full border rounded-lg px-3 py-2 text-sm"
         />
 
