@@ -10,7 +10,7 @@ type Content = {
   hero_image_url: string | null; hero_headline: string; hero_subtext: string;
   story_title: string; story_text: string; hours_text: string;
   location_text: string; phone_text: string; email_text: string;
-  facebook_url: string; instagram_url: string; trust_badge_image_url: string | null;
+  facebook_url: string; instagram_url: string; trust_badge_image_url: string | null; gallery_banner_image_url: string | null;
   hygiene_rating_image_url: string | null;
 };
 type Feature = { id: string; title: string; description: string | null; image_url: string | null; sort_order: number };
@@ -36,6 +36,8 @@ function HomepageEditor() {
   const [hygienePreview, setHygienePreview] = useState<string | null>(null);
   const [trustBadgeFile, setTrustBadgeFile] = useState<File | null>(null);
   const [trustBadgePreview, setTrustBadgePreview] = useState<string | null>(null);
+  const [galleryBannerFile, setGalleryBannerFile] = useState<File | null>(null);
+  const [galleryBannerPreview, setGalleryBannerPreview] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [savedMsg, setSavedMsg] = useState('');
@@ -78,9 +80,12 @@ function HomepageEditor() {
       let trustBadgeUrl = content.trust_badge_image_url;
       if (trustBadgeFile) trustBadgeUrl = await uploadPhoto(trustBadgeFile);
 
+      let galleryBannerUrl = content.gallery_banner_image_url;
+      if (galleryBannerFile) galleryBannerUrl = await uploadPhoto(galleryBannerFile);
+
       const { error: updateError } = await supabase
         .from('homepage_content')
-        .update({ ...content, hero_image_url: heroUrl, logo_url: logoUrl, hygiene_rating_image_url: hygieneUrl, trust_badge_image_url: trustBadgeUrl })
+        .update({ ...content, hero_image_url: heroUrl, logo_url: logoUrl, hygiene_rating_image_url: hygieneUrl, trust_badge_image_url: trustBadgeUrl, gallery_banner_image_url: galleryBannerUrl })
         .eq('id', 1);
 
       if (updateError) throw new Error(updateError.message);
@@ -92,6 +97,8 @@ function HomepageEditor() {
       setHygienePreview(null);
       setTrustBadgeFile(null);
       setTrustBadgePreview(null);
+      setGalleryBannerFile(null);
+      setGalleryBannerPreview(null);
       setSavedMsg('Saved!');
       setTimeout(() => setSavedMsg(''), 2000);
       loadAll();
@@ -292,6 +299,26 @@ function HomepageEditor() {
               src={trustBadgePreview || content.trust_badge_image_url || ''}
               alt="Trust badge preview"
               className="mt-2 max-w-[220px]"
+            />
+          )}
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium mb-1">
+            Gallery page banner image (optional)
+          </label>
+          <input
+            type="file" accept="image/*"
+            onChange={e => {
+              const f = e.target.files?.[0];
+              if (f) { setGalleryBannerFile(f); setGalleryBannerPreview(URL.createObjectURL(f)); }
+            }}
+            className="w-full text-sm"
+          />
+          {(galleryBannerPreview || content.gallery_banner_image_url) && (
+            <div
+              className="mt-2 w-full h-24 rounded-lg bg-cover bg-center border"
+              style={{ backgroundImage: `url('${galleryBannerPreview || content.gallery_banner_image_url}')` }}
             />
           )}
         </div>
